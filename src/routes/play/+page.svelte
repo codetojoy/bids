@@ -13,6 +13,7 @@
 	} from '$lib/domain/game-state';
 	import { gameWinners, standings } from '$lib/domain/scoring';
 	import { randomSeed } from '$lib/domain/rng';
+	import { loadSettings } from '$lib/ui/settings';
 	import NumberCard from '$lib/ui/NumberCard.svelte';
 	import peepYou from '$lib/assets/avatars/peep-04.svg';
 	import peepMozart from '$lib/assets/avatars/peep-02.svg';
@@ -22,7 +23,10 @@
 	// Avatars are decorative (ASSETS.md): the seat name is the real identifier.
 	const avatars = [peepYou, peepMozart, peepBrahms, peepChopin];
 
-	const newGame = () => startGame({ ...DEFAULT_CONFIG, seed: randomSeed() });
+	// The deck size comes from /config, read at deal time — so changing it starts applying
+	// with the next new game, and a game in progress keeps the deck it was dealt from.
+	const newGame = () =>
+		startGame({ ...DEFAULT_CONFIG, deckSize: loadSettings().deckSize, seed: randomSeed() });
 
 	// The deal is random, so it must happen in the browser, not at prerender time: a game
 	// dealt during the static build would be baked into the HTML and then contradicted by

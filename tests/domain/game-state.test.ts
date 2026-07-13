@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { validDeckSizes } from '../../src/lib/domain/deck.ts';
 import {
 	currentPrize,
 	DEFAULT_CONFIG,
@@ -127,6 +128,33 @@ describe('playRound', () => {
 		const done = playOut(startGame(config(9)));
 		expect(done.phase).toBe('complete');
 		expect(() => playRound(done, 1)).toThrow(/game is over/);
+	});
+});
+
+describe('a game at every playable deck size (TODO-005)', () => {
+	it.each(validDeckSizes(4))('deck of %i: deals, plays out, and conserves everything', (deckSize) => {
+		const perPile = deckSize / 5; // four players + the kitty
+		const start = startGame({ ...DEFAULT_CONFIG, deckSize, seed: deckSize });
+
+		expect(start.hands.every((h) => h.length === perPile)).toBe(true);
+		expect(start.kitty).toHaveLength(perPile);
+		// No card outside the chosen deck can appear.
+		expect([...start.hands.flat(), ...start.kitty].sort((a, b) => a - b)).toEqual(
+			Array.from({ length: deckSize }, (_, i) => i + 1)
+		);
+
+		const done = playOut(start);
+
+		expect(done.history).toHaveLength(perPile); // the deck size sets the length of the game
+		expect(done.round).toBe(perPile);
+		expect(done.hands.every((h) => h.length === 0)).toBe(true);
+		expect(done.scores.reduce((a, b) => a + b, 0)).toBe(start.kitty.reduce((a, b) => a + b, 0));
+	});
+
+	it('refuses a deck size that cannot be dealt', () => {
+		for (const deckSize of [41, 15, 65, 0]) {
+			expect(() => startGame({ ...DEFAULT_CONFIG, deckSize, seed: 1 })).toThrow(/not playable/);
+		}
 	});
 });
 

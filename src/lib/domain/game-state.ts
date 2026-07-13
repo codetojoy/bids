@@ -1,4 +1,13 @@
-import { buildDeck, deal, shuffle, type Card } from './deck.ts';
+import {
+	buildDeck,
+	deal,
+	DECK_SIZE_MAX,
+	DECK_SIZE_MIN,
+	DEFAULT_DECK_SIZE,
+	isValidDeckSize,
+	shuffle,
+	type Card
+} from './deck.ts';
 import { makeRng, type Rng } from './rng.ts';
 import { prizeValue, resolveRound } from './scoring.ts';
 import { getStrategy, type StrategyId } from './strategy.ts';
@@ -59,9 +68,9 @@ export interface GameState {
 	phase: 'bidding' | 'complete';
 }
 
-/** The defaults for TODO-002: a 1..40 deck, you against Mozart, Brahms and Chopin. */
+/** The defaults: a 1..40 deck, you against Mozart, Brahms and Chopin. */
 export const DEFAULT_CONFIG: Omit<GameConfig, 'seed'> = {
-	deckSize: 40,
+	deckSize: DEFAULT_DECK_SIZE,
 	players: [
 		{ name: 'You', strategy: null },
 		{ name: 'Mozart', strategy: 'nextCard' },
@@ -76,6 +85,12 @@ export function startGame(config: GameConfig, rng: Rng = makeRng(config.seed)): 
 	}
 	if (config.players[HUMAN_ID].strategy !== null) {
 		throw new Error('seat 0 is the human seat and must not have a strategy');
+	}
+	if (!isValidDeckSize(config.deckSize, config.players.length)) {
+		throw new Error(
+			`deck size ${config.deckSize} is not playable with ${config.players.length} players: ` +
+				`it must be ${DECK_SIZE_MIN}–${DECK_SIZE_MAX} and divide evenly among the players and the kitty`
+		);
 	}
 
 	const { hands, kitty } = deal(shuffle(buildDeck(config.deckSize), rng), config.players.length);

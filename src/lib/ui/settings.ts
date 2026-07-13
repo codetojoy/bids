@@ -9,22 +9,33 @@
  */
 
 import { browser } from '$app/environment';
+import { DEFAULT_DECK_SIZE, isValidDeckSize } from '../domain/deck.ts';
+import { DEFAULT_CONFIG } from '../domain/game-state.ts';
 import { DEFAULT_THEME_ID, parseThemeId, themeFor, type ThemeId } from './theme.ts';
 
 const STORAGE_KEY = 'bids.settings.v1';
 
+/** The seat count the settings are validated against — fixed until players are configurable. */
+const PLAYER_COUNT = DEFAULT_CONFIG.players.length;
+
 export interface Settings {
 	themeId: ThemeId;
+	deckSize: number;
 }
 
 export function defaultSettings(): Settings {
-	return { themeId: DEFAULT_THEME_ID };
+	return { themeId: DEFAULT_THEME_ID, deckSize: DEFAULT_DECK_SIZE };
+}
+
+/** Coerce a stored deck size to a playable one, falling back to the default (TODO-005). */
+export function parseDeckSize(value: unknown): number {
+	return isValidDeckSize(value, PLAYER_COUNT) ? value : DEFAULT_DECK_SIZE;
 }
 
 /** Normalize an arbitrary parsed blob into usable settings. Pure — exported for testing. */
 export function normalizeSettings(raw: unknown): Settings {
-	const themeId = raw && typeof raw === 'object' ? (raw as Record<string, unknown>).themeId : null;
-	return { themeId: parseThemeId(themeId) };
+	const obj = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+	return { themeId: parseThemeId(obj.themeId), deckSize: parseDeckSize(obj.deckSize) };
 }
 
 export function loadSettings(): Settings {

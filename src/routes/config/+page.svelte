@@ -1,29 +1,54 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
-	import { applyTheme, loadSettings, saveSettings } from '$lib/ui/settings';
-	import { DEFAULT_THEME_ID, THEMES, parseThemeId, type ThemeId } from '$lib/ui/theme';
+	import { validDeckSizes } from '$lib/domain/deck';
+	import { DEFAULT_CONFIG } from '$lib/domain/game-state';
+	import {
+		applyTheme,
+		defaultSettings,
+		loadSettings,
+		parseDeckSize,
+		saveSettings,
+		type Settings
+	} from '$lib/ui/settings';
+	import { THEMES, parseThemeId } from '$lib/ui/theme';
 
-	// The saved value is only readable in the browser (localStorage), and the page is
-	// prerendered — so start from the default and load the real value on mount.
-	let themeId = $state<ThemeId>(DEFAULT_THEME_ID);
+	const playerCount = DEFAULT_CONFIG.players.length;
+	const deckSizes = validDeckSizes(playerCount);
+	// Every pile is the same size: one per player, plus the kitty. So the cards each player
+	// holds — and therefore the number of rounds — is the deck split that many ways.
+	const roundsFor = (deckSize: number) => deckSize / (playerCount + 1);
+
+	// The saved values are only readable in the browser (localStorage), and the page is
+	// prerendered — so start from the defaults and load the real ones on mount.
+	let settings = $state<Settings>(defaultSettings());
 	let saved = $state(false);
 
 	onMount(() => {
-		themeId = loadSettings().themeId;
+		settings = loadSettings();
 	});
 
-	function chooseTheme(event: Event) {
-		themeId = parseThemeId((event.currentTarget as HTMLSelectElement).value);
-		saveSettings({ themeId });
-		applyTheme(themeId);
+	function commit(next: Settings) {
+		settings = next;
+		saveSettings(next);
 		saved = true;
+	}
+
+	function chooseTheme(event: Event) {
+		const themeId = parseThemeId((event.currentTarget as HTMLSelectElement).value);
+		commit({ ...settings, themeId });
+		applyTheme(themeId);
+	}
+
+	function chooseDeckSize(event: Event) {
+		const deckSize = parseDeckSize(Number((event.currentTarget as HTMLSelectElement).value));
+		commit({ ...settings, deckSize });
 	}
 </script>
 
 <svelte:head>
 	<title>Config — Bids</title>
-	<meta name="description" content="Configure Bids: choose a theme." />
+	<meta name="description" content="Configure Bids: choose a theme and a deck size." />
 </svelte:head>
 
 <main>
@@ -35,19 +60,32 @@
 	<section class="settings">
 		<div class="setting">
 			<label for="theme">Theme</label>
-			<select id="theme" value={themeId} onchange={chooseTheme}>
+			<select id="theme" value={settings.themeId} onchange={chooseTheme}>
 				{#each THEMES as theme (theme.id)}
 					<option value={theme.id}>{theme.label}</option>
 				{/each}
 			</select>
-			<p class="hint" aria-live="polite">
-				{#if saved}
-					Saved. Your settings stay on this device.
-				{:else}
-					The look of the app.
-				{/if}
+			<p class="hint">The look of the app.</p>
+		</div>
+
+		<div class="setting">
+			<label for="deck-size">Deck size</label>
+			<select id="deck-size" value={settings.deckSize} onchange={chooseDeckSize}>
+				{#each deckSizes as size (size)}
+					<option value={size}>{size} cards — {roundsFor(size)} each, {roundsFor(size)} rounds</option>
+				{/each}
+			</select>
+			<p class="hint">
+				The deck is dealt out evenly to the {playerCount} players and the kitty, so a bigger deck
+				means a longer game. Takes effect on your next new game.
 			</p>
 		</div>
+
+		<p class="saved" aria-live="polite">
+			{#if saved}
+				Saved. Your settings stay on this device.
+			{/if}
+		</p>
 	</section>
 
 	<p class="note"><a href="{base}/">← Home</a></p>
@@ -84,6 +122,9 @@
 	}
 
 	.settings {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
 		padding: 1.25rem;
 		border: 1px solid var(--rule);
 		border-left: 4px solid var(--accent);
@@ -128,6 +169,13 @@
 		margin: 0;
 		color: var(--muted);
 		font-size: 1rem;
+	}
+
+	.saved {
+		margin: 0;
+		min-height: 1.5rem;
+		color: var(--good);
+		font-weight: 700;
 	}
 
 	.note {

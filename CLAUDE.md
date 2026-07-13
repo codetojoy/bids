@@ -11,13 +11,22 @@ wins the prize card's points. The rules are `doc/GameRules.md`; the authoritativ
 is `doc/SPEC.md` — read both before making design decisions. Work items arrive as
 `doc/TODO-*.md` files.
 
-**Current state: one playable game (TODO-002).** `/play` deals a 1..40 deck to you and three
-computer players (Mozart, Brahms, Chopin) plus the kitty — five piles of 8, so a game is 8
-rounds — and plays through to a winner. Every computer seat uses the `nextCard` strategy (bid
-the next card in the hand as dealt), a deliberately trivial baseline. Deck size, player names,
-and strategy assignment are hard-coded in `DEFAULT_CONFIG` and become configurable later.
-`/config` holds one real setting so far — **Theme** (Cream, Dark, Tiger; TODO-003, TODO-004) —
-and it is the only thing that persists.
+**Current state: one playable game.** `/play` deals the deck to you and three computer players
+(Mozart, Brahms, Chopin) plus the kitty, and plays through to a winner. Every computer seat uses
+the `nextCard` strategy (bid the next card in the hand as dealt), a deliberately trivial
+baseline. Player names and strategy assignment are still hard-coded in `DEFAULT_CONFIG`.
+
+`/config` holds the two settings that persist: **Theme** (Cream, Dark, Tiger; TODO-003,
+TODO-004) and **Deck size** (TODO-005).
+
+**Deck size and the shape of a game.** The deck is dealt out *evenly* to the players **and the
+kitty** — `playerCount + 1` piles — so the deck size determines everything else: each hand, the
+kitty, and therefore the number of rounds are all `deckSize / (playerCount + 1)`. Valid sizes
+are `DECK_SIZE_MIN`..`DECK_SIZE_MAX` (20–60) that divide evenly; with today's four seats that is
+the multiples of 5, giving games of 4 to 12 rounds. The divisor is **derived from the player
+count, never hardcoded as 5** — keep it that way, or it silently rots when seats become
+configurable. `startGame` throws on an unplayable size, and the settings layer's `parseDeckSize`
+makes sure one can never reach it.
 
 **The tie invariant (confirmed with the human):** the deck is suitless and every card unique,
 so two players can never bid the same number — there is no tie-break rule, and none should be
@@ -64,7 +73,8 @@ Domain module map:
   deterministic under test and reproducible from a seed
 - `deck.ts` — `Card` is just a number (the deck is suitless); `buildDeck`, `shuffle`, and
   `deal`, which splits the deck into `playerCount + 1` equal piles (players + kitty) and throws
-  rather than dropping cards if it doesn't divide evenly
+  rather than dropping cards if it doesn't divide evenly; plus the deck-size rules
+  (`isValidDeckSize`, `validDeckSizes`, which the Config dropdown renders from)
 - `strategy.ts` — the strategy pattern (SPEC §4). A `Strategy` is a pure
   `({ hand, prize }) => Card`; bids are simultaneous, so it never sees another player's bid.
   Only `nextCard` exists so far — min / max / nearest-to-prize / hybrid are added as new entries
@@ -80,8 +90,12 @@ Seat 0 is always the human (`HUMAN_ID`) and is the only seat with a `null` strat
 `theme.ts` is the registry (`THEMES`, `DEFAULT_THEME_ID`, `parseThemeId`) and is pure, so it is
 unit-tested directly. `settings.ts` is the only module that touches `localStorage` (key
 `bids.settings.v1`) and the live DOM; it is guarded by `browser` because every route is
-prerendered, and every read goes through `parseThemeId`, so a corrupt or stale stored value
-falls back to Cream instead of throwing or blanking the app.
+prerendered. Every field of the stored blob is coerced on read (`parseThemeId`,
+`parseDeckSize`), field by field, so a corrupt, stale, or older-build value falls back to its
+default instead of throwing or blanking the app — a blob written before a setting existed still
+loads, and a bad theme doesn't take a good deck size down with it. Settings are read at the
+moment they're used (`/play` reads the deck size when it deals), so a change applies to the next
+game, never to one in progress.
 
 **Adding a theme is three edits, and every one of them is required:**
 

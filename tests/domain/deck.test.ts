@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { buildDeck, deal, shuffle } from '../../src/lib/domain/deck.ts';
+import {
+	buildDeck,
+	deal,
+	DECK_SIZE_MAX,
+	DECK_SIZE_MIN,
+	DEFAULT_DECK_SIZE,
+	isValidDeckSize,
+	shuffle,
+	validDeckSizes
+} from '../../src/lib/domain/deck.ts';
 import { makeRng } from '../../src/lib/domain/rng.ts';
 
 describe('buildDeck', () => {
@@ -35,6 +44,46 @@ describe('shuffle', () => {
 
 	it('actually moves cards around', () => {
 		expect(shuffle(buildDeck(40), makeRng(3))).not.toEqual(buildDeck(40));
+	});
+});
+
+describe('valid deck sizes (TODO-005)', () => {
+	/* A deck must split evenly into one pile per player *plus the kitty*. With today's four
+	   seats that means the multiples of 5 — but the step is derived from the player count,
+	   not hardcoded, so this stays honest when seats become configurable. */
+	it('is every multiple of 5 from 20 to 60, for the four-player game', () => {
+		expect(validDeckSizes(4)).toEqual([20, 25, 30, 35, 40, 45, 50, 55, 60]);
+		expect(DECK_SIZE_MIN).toBe(20);
+		expect(DECK_SIZE_MAX).toBe(60);
+		expect(DEFAULT_DECK_SIZE).toBe(40);
+		expect(isValidDeckSize(DEFAULT_DECK_SIZE, 4)).toBe(true);
+	});
+
+	it('tracks the player count rather than assuming five piles', () => {
+		// Three players + kitty = 4 piles: multiples of 4 in range.
+		expect(validDeckSizes(3)).toEqual([20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60]);
+		expect(isValidDeckSize(40, 3)).toBe(true);
+		expect(isValidDeckSize(45, 3)).toBe(false); // 45 is not divisible by 4
+	});
+
+	it('rejects sizes that do not divide evenly, or fall outside the range', () => {
+		expect(isValidDeckSize(41, 4)).toBe(false);
+		expect(isValidDeckSize(15, 4)).toBe(false); // below the minimum, though a multiple of 5
+		expect(isValidDeckSize(65, 4)).toBe(false); // above the maximum
+	});
+
+	it('rejects anything that is not a whole number of cards', () => {
+		for (const bad of [42.5, '40', null, undefined, NaN, {}]) {
+			expect(isValidDeckSize(bad, 4)).toBe(false);
+		}
+	});
+
+	it('every valid size deals cleanly — that is the whole point of the rule', () => {
+		for (const size of validDeckSizes(4)) {
+			const { hands, kitty } = deal(buildDeck(size), 4);
+			expect(hands.every((h) => h.length === size / 5)).toBe(true);
+			expect(kitty).toHaveLength(size / 5);
+		}
 	});
 });
 
