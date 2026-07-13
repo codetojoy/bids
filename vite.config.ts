@@ -74,9 +74,6 @@ export default defineConfig({
 	},
 	test: {
 		expect: { requireAssertions: true },
-		// Scaffolding stage: the domain layer (and its tests) arrives with the first
-		// game-logic TODO. Drop this once tests/domain/ is populated.
-		passWithNoTests: true,
 		projects: [
 			{
 				extends: './vite.config.ts',

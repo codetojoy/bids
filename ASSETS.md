@@ -10,6 +10,7 @@ original to this project.
 | `static/fonts/lato-400.woff2`, `lato-400-italic.woff2`, `lato-700.woff2` | [Lato](https://fonts.google.com/specimen/Lato) by Łukasz Dziedzic; latin-subset woff2 files obtained via Google Fonts, self-hosted so the app makes no network calls (SPEC §6) | SIL Open Font License 1.1 |
 | `static/fonts/lora-600.woff2`, `lora-400-italic.woff2` | [Lora](https://fonts.google.com/specimen/Lora) by Cyreal; latin-subset woff2 files obtained via Google Fonts, self-hosted | SIL Open Font License 1.1 |
 | `src/lib/assets/favicon.svg`, `static/icon.svg` | Original Bids app icon (two fanned number cards), hand-written SVG | Apache 2.0 (project license) |
+| `src/lib/ui/NumberCard.svelte` (card faces) | Original — the deck is suitless, so a card face is just its number, styled for large high-contrast legibility | Apache 2.0 (project license) |
 | `src/lib/assets/avatars/peep-*.svg` (6 files) | [Open Peeps](https://www.openpeeps.com/) by Pablo Stanley, rendered offline via the [DiceBear](https://www.dicebear.com/styles/open-peeps/) `open-peeps` style; each SVG embeds the license statement in its `<metadata>`. Copied from the sibling `forty-fives` project, where they were generated (see that repo's `ASSETS.md` for the full seed/option generation record) | CC0 1.0 (public domain) |
 
 ## Note on avatars
@@ -24,6 +25,6 @@ visible player name and strategy as the real identifiers.
 ## Note on the card deck
 
 The deck in Bids is suitless — just the numbers 1..N — so there is no standard playing-card
-deck to vendor. Card faces will be drawn programmatically as inline SVG (per SPEC §3), which
-also gives sharper text scaling and larger, higher-contrast numerals. Record the provenance
-here if that changes.
+deck to vendor and none is bundled. A card face is drawn by `NumberCard.svelte` as a numeral
+on a paper-coloured rectangle, sized in rem so it scales with the OS font setting. Record the
+provenance here if a real deck asset is ever introduced.

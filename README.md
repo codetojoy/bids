@@ -7,12 +7,21 @@ prize card's points. Most points after the last round wins. See
 [doc/GameRules.md](doc/GameRules.md) for the rules and [doc/SPEC.md](doc/SPEC.md) for the
 project plan.
 
-**Current status: scaffolding (TODO-001).** The app is an installable, offline-capable
-PWA shell with a home page offering:
+**Current status: a playable game (TODO-002).** The app is an installable, offline-capable
+PWA:
 
-- **Play** — placeholder; the game itself is not implemented yet.
-- **Config** — placeholder; deck size, player count, and AI strategies will live here.
-- **About** — real: version, build time, and git commit of the running build.
+- **Play** — a full game: a 1..40 deck is dealt to you and three computer players (Mozart,
+  Brahms and Chopin) plus the kitty, giving everyone 8 cards and the game 8 rounds. Each
+  round shows the prize card, you bid a card from your hand, all four bids are revealed, and
+  the highest takes the prize card's points. The game ends with the final standings.
+- **Config** — placeholder; deck size, player count, names, and strategy assignment will live
+  here. For now they are the fixed defaults above.
+- **About** — version, build time, and git commit of the running build.
+
+The computer players all use the `nextCard` strategy for now — bid the next card in the hand
+as dealt — which is a deliberately simple baseline. The min / max / nearest-to-prize and
+hybrid strategies of SPEC §4 plug into `src/lib/domain/strategy.ts` without touching anything
+else.
 
 ## Running the app locally
 
@@ -43,10 +52,15 @@ npm run test:unit    # watch mode
 npm run check        # typecheck (svelte-check)
 ```
 
-There are no tests yet — the suite is wired up and passes vacuously (`passWithNoTests` in
-`vite.config.ts`) until the domain layer lands. Per SPEC §9 the domain layer is the heart
-of the project and is to be tested relentlessly; remove that flag with the first domain
-test.
+The suite tests the domain layer (SPEC §9: the UI is replaceable, the rules engine is not).
+Beyond per-module tests it checks whole-game properties over seeded games: points are
+conserved (the final scores sum to the kitty's face value), cards are conserved (every dealt
+card is bid exactly once), and every game terminates in exactly 8 rounds with all hands
+empty.
+
+One rules note worth knowing: because the deck is suitless and every card unique, two players
+can never bid the same number — so there is no tie-break rule, and the domain throws if it
+ever sees a duplicate bid. Final *scores* can tie, and a shared win is reported as such.
 
 ### Production build & PWA testing
 
