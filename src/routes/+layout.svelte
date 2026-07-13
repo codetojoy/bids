@@ -50,10 +50,10 @@
 	 * Lora display + Lato body.
 	 *
 	 * This is the "Cream" theme of /config (TODO-003) and the default, so it sits on
-	 * :root unqualified — it therefore also applies before the saved theme is read, and
-	 * if localStorage is unavailable. A second theme is added as a
-	 * `:global(:root[data-theme='<id>'])` block overriding these variables, plus an entry
-	 * in src/lib/ui/theme.ts; nothing else in the app needs to change.
+	 * :root unqualified — it therefore also applies if localStorage is unavailable.
+	 * Another theme is a `:global(:root[data-theme='<id>'])` block overriding these
+	 * variables, plus an entry in src/lib/ui/theme.ts and in the pre-paint map in
+	 * src/app.html; nothing else in the app needs to change.
 	 */
 	:global(:root) {
 		--bg: #f7f2e7;
@@ -66,9 +66,48 @@
 		--focus: #9c4632;
 		--good: #2c6e3f;
 		--bad: #b3261e;
+		/* Panel shadow. A token because a warm grey shadow reads as haze on dark paper. */
+		--shadow: rgba(61, 58, 53, 0.08);
 		--serif: 'Lora', Georgia, 'Times New Roman', serif;
 		--sans:
 			'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+	}
+
+	/*
+	 * "Dark" theme (TODO-004): a typical dark theme — near-black paper, light-grey ink, a
+	 * friendly blue accent. Palette from the sibling cryptogram project. Colour tokens
+	 * only; the fonts are shared.
+	 */
+	:global(:root[data-theme='dark']) {
+		--bg: #121212;
+		--panel: #1e1e1e;
+		--ink: #e8e8e8;
+		--muted: #a0a0a0;
+		--accent: #6ea8fe;
+		--accent-deep: #4f8ef0;
+		--rule: #333333;
+		--focus: #8ab4f8;
+		--good: #4ade80;
+		--bad: #f87171;
+		--shadow: rgba(0, 0, 0, 0.5);
+	}
+
+	/*
+	 * "Tiger" theme (TODO-004): orange and black — near-black warm paper, warm off-white
+	 * ink, vivid tiger-orange accents. Palette from cryptogram, where it is called Bengal.
+	 */
+	:global(:root[data-theme='tiger']) {
+		--bg: #1a1206;
+		--panel: #241a0d;
+		--ink: #ffe9d0;
+		--muted: #c9a97f;
+		--accent: #f57c1f;
+		--accent-deep: #d9631a;
+		--rule: #4a3620;
+		--focus: #f9a03f;
+		--good: #4ade80;
+		--bad: #f87171;
+		--shadow: rgba(0, 0, 0, 0.5);
 	}
 
 	:global(body) {

@@ -50,6 +50,33 @@
 				src: url('%sveltekit.assets%/fonts/lora-400-italic.woff2') format('woff2');
 			}
 		</style>
+		<script>
+			/*
+			 * Apply the saved theme (TODO-004) before first paint, so a Dark or Tiger user
+			 * doesn't get a flash of the Cream palette on every cold load. The app re-asserts
+			 * this on hydration (applyTheme in +layout.svelte); this only wins the race to
+			 * the first frame.
+			 *
+			 * It runs before any module can load, so the id → theme-colour map is duplicated
+			 * from src/lib/ui/theme.ts — keep the two in sync when adding a theme. Reads the
+			 * same localStorage key the app writes; no network (privacy, SPEC §1). If storage
+			 * is unavailable or the value is junk, it falls back silently to Cream, which is
+			 * the unqualified :root palette anyway.
+			 */
+			(function () {
+				try {
+					var raw = localStorage.getItem('bids.settings.v1');
+					var id = raw ? JSON.parse(raw).themeId : 'cream';
+					var colors = { cream: '#9c4632', dark: '#4f8ef0', tiger: '#d9631a' };
+					if (!colors[id]) id = 'cream';
+					document.documentElement.setAttribute('data-theme', id);
+					var meta = document.querySelector('meta[name="theme-color"]');
+					if (meta) meta.setAttribute('content', colors[id]);
+				} catch (e) {
+					/* storage unavailable or unparseable — Cream (the base :root) applies */
+				}
+			})();
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

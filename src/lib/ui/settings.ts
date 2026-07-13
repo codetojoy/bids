@@ -9,7 +9,7 @@
  */
 
 import { browser } from '$app/environment';
-import { DEFAULT_THEME_ID, parseThemeId, type ThemeId } from './theme.ts';
+import { DEFAULT_THEME_ID, parseThemeId, themeFor, type ThemeId } from './theme.ts';
 
 const STORAGE_KEY = 'bids.settings.v1';
 
@@ -50,9 +50,14 @@ export function saveSettings(settings: Settings): void {
 
 /**
  * Put the theme on the document root so the CSS variables for it apply
- * (`:root[data-theme="…"]` in +layout.svelte). Called on load and on every change.
+ * (`:root[data-theme="…"]` in +layout.svelte), and match the browser chrome to it.
+ * Called on every change, and on load — where it re-asserts what the pre-paint script in
+ * app.html already did.
  */
 export function applyTheme(themeId: ThemeId): void {
 	if (!browser) return;
-	document.documentElement.dataset.theme = themeId;
+	const theme = themeFor(themeId);
+	document.documentElement.dataset.theme = theme.id;
+	const meta = document.querySelector('meta[name="theme-color"]');
+	if (meta) meta.setAttribute('content', theme.themeColor);
 }

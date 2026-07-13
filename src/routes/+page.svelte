@@ -91,7 +91,7 @@
 		background: var(--panel);
 		color: var(--ink);
 		text-decoration: none;
-		box-shadow: 0 1px 3px rgba(61, 58, 53, 0.08);
+		box-shadow: 0 1px 3px var(--shadow);
 	}
 
 	.mode:hover {

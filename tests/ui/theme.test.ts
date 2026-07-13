@@ -15,19 +15,28 @@ import {
 import { defaultSettings, normalizeSettings } from '../../src/lib/ui/settings.ts';
 
 describe('the theme registry', () => {
-	it('offers Cream, and only Cream, for now', () => {
-		expect(THEMES.map((t) => t.id)).toEqual(['cream']);
-		expect(themeLabel('cream')).toBe('Cream');
+	it('offers Cream, Dark and Tiger', () => {
+		expect(THEMES.map((t) => t.id)).toEqual(['cream', 'dark', 'tiger']);
+		expect(THEMES.map((t) => t.label)).toEqual(['Cream', 'Dark', 'Tiger']);
+		expect(themeLabel('tiger')).toBe('Tiger');
 	});
 
-	it('defaults to Cream — the palette the app already wears', () => {
+	it('defaults to Cream — the palette the app wears unqualified', () => {
 		expect(DEFAULT_THEME_ID).toBe('cream');
 		expect(isThemeId(DEFAULT_THEME_ID)).toBe(true);
 	});
 
+	it('gives every theme a browser-chrome colour', () => {
+		for (const theme of THEMES) {
+			expect(theme.themeColor).toMatch(/^#[0-9a-f]{6}$/i);
+		}
+	});
+
 	it('recognizes only ids that are actually in the registry', () => {
 		expect(isThemeId('cream')).toBe(true);
-		expect(isThemeId('midnight')).toBe(false);
+		expect(isThemeId('dark')).toBe(true);
+		expect(isThemeId('tiger')).toBe(true);
+		expect(isThemeId('bengal')).toBe(false); // cryptogram's name for Tiger — not ours
 		expect(isThemeId(null)).toBe(false);
 		expect(isThemeId(42)).toBe(false);
 	});
@@ -36,6 +45,8 @@ describe('the theme registry', () => {
 describe('parseThemeId', () => {
 	it('keeps a known id', () => {
 		expect(parseThemeId('cream')).toBe('cream');
+		expect(parseThemeId('dark')).toBe('dark');
+		expect(parseThemeId('tiger')).toBe('tiger');
 	});
 
 	/* The stored value is untrusted: it can be absent, hand-edited, or an id from a build
@@ -50,6 +61,7 @@ describe('parseThemeId', () => {
 describe('normalizeSettings', () => {
 	it('reads a well-formed stored blob', () => {
 		expect(normalizeSettings({ themeId: 'cream' })).toEqual({ themeId: 'cream' });
+		expect(normalizeSettings({ themeId: 'tiger' })).toEqual({ themeId: 'tiger' });
 	});
 
 	it('returns the defaults for a missing, empty, or malformed blob', () => {

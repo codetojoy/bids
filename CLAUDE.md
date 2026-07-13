@@ -16,8 +16,8 @@ computer players (Mozart, Brahms, Chopin) plus the kitty — five piles of 8, so
 rounds — and plays through to a winner. Every computer seat uses the `nextCard` strategy (bid
 the next card in the hand as dealt), a deliberately trivial baseline. Deck size, player names,
 and strategy assignment are hard-coded in `DEFAULT_CONFIG` and become configurable later.
-`/config` (TODO-003) holds one real setting so far — **Theme**, whose only option is "Cream",
-the palette the app already wears — and it is the only thing that persists.
+`/config` holds one real setting so far — **Theme** (Cream, Dark, Tiger; TODO-003, TODO-004) —
+and it is the only thing that persists.
 
 **The tie invariant (confirmed with the human):** the deck is suitless and every card unique,
 so two players can never bid the same number — there is no tie-break rule, and none should be
@@ -79,15 +79,25 @@ Seat 0 is always the human (`HUMAN_ID`) and is the only seat with a `null` strat
 
 `theme.ts` is the registry (`THEMES`, `DEFAULT_THEME_ID`, `parseThemeId`) and is pure, so it is
 unit-tested directly. `settings.ts` is the only module that touches `localStorage` (key
-`bids.settings.v1`); it is guarded by `browser` because every route is prerendered, and every
-read goes through `parseThemeId`, so a corrupt or stale stored value falls back to the default
-instead of throwing.
+`bids.settings.v1`) and the live DOM; it is guarded by `browser` because every route is
+prerendered, and every read goes through `parseThemeId`, so a corrupt or stale stored value
+falls back to Cream instead of throwing or blanking the app.
 
-**Adding a theme is two edits and nothing else:** an entry in `THEMES`, and a
-`:global(:root[data-theme='<id>'])` block in `+layout.svelte` overriding the design tokens. The
-Cream tokens sit on unqualified `:root` so they also apply before the saved theme is read and
-when storage is unavailable; `+layout.svelte` stamps `data-theme` on `<html>` in `onMount`. The
-`/config` dropdown renders from `THEMES` and needs no changes.
+**Adding a theme is three edits, and every one of them is required:**
+
+1. an entry in `THEMES` (`theme.ts`);
+2. a `:global(:root[data-theme='<id>'])` block in `+layout.svelte` overriding the colour tokens
+   (Dark and Tiger are ported from the sibling `cryptogram` project, where Tiger is "Bengal");
+3. an entry in the **pre-paint script in `src/app.html`**, which stamps `data-theme` from
+   `localStorage` before the first frame. Without it, a Dark or Tiger user sees a flash of Cream
+   on every cold load — the layout's `applyTheme` in `onMount` runs *after* first paint and only
+   re-asserts what the script already did. The script cannot import `theme.ts` (it runs before
+   any module loads), so its id → theme-colour map is duplicated by necessity; keep it in sync.
+
+The `/config` dropdown renders from `THEMES` and needs no changes. Cream's tokens sit on
+unqualified `:root`, so it is also what you get when storage is unavailable. **Never hardcode a
+colour in a component** — that is how a panel gets stuck light under a dark theme. Everything,
+including the panel shadow (`--shadow`), goes through a token.
 
 ### The random deal must not happen at prerender time
 

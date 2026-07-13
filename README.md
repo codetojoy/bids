@@ -14,8 +14,8 @@ PWA:
   Brahms and Chopin) plus the kitty, giving everyone 8 cards and the game 8 rounds. Each
   round shows the prize card, you bid a card from your hand, all four bids are revealed, and
   the highest takes the prize card's points. The game ends with the final standings.
-- **Config** — one setting so far: **Theme**, whose only option is "Cream" (the palette the
-  app already wears). Your choice is saved on this device and nowhere else. Deck size, player
+- **Config** — one setting so far: **Theme** — Cream (the warm default), Dark, or Tiger
+  (orange on black). Your choice is saved on this device and nowhere else. Deck size, player
   count, names, and strategy assignment will join it here; for now they are the fixed
   defaults above.
 - **About** — version, build time, and git commit of the running build.

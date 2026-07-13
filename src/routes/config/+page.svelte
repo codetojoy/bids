@@ -44,7 +44,7 @@
 				{#if saved}
 					Saved. Your settings stay on this device.
 				{:else}
-					The look of the app. More themes will be added here.
+					The look of the app.
 				{/if}
 			</p>
 		</div>
@@ -89,7 +89,7 @@
 		border-left: 4px solid var(--accent);
 		border-radius: 6px;
 		background: var(--panel);
-		box-shadow: 0 1px 3px rgba(61, 58, 53, 0.08);
+		box-shadow: 0 1px 3px var(--shadow);
 	}
 
 	.setting {

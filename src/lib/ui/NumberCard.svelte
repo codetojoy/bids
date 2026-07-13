@@ -33,7 +33,7 @@
 		font-weight: 600;
 		font-variant-numeric: tabular-nums;
 		line-height: 1;
-		box-shadow: 0 1px 3px rgba(61, 58, 53, 0.08);
+		box-shadow: 0 1px 3px var(--shadow);
 	}
 
 	.sm {

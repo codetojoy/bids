@@ -280,7 +280,7 @@
 		border-left: 4px solid var(--accent);
 		border-radius: 6px;
 		background: var(--panel);
-		box-shadow: 0 1px 3px rgba(61, 58, 53, 0.08);
+		box-shadow: 0 1px 3px var(--shadow);
 	}
 
 	.prize-card {
