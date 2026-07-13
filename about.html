@@ -50,23 +50,51 @@
 				src: url('./fonts/lora-400-italic.woff2') format('woff2');
 			}
 		</style>
-		<link href="./_app/immutable/entry/start.DTpsuq-B.js" rel="modulepreload">
-		<link href="./_app/immutable/chunks/CPvfwZkr.js" rel="modulepreload">
-		<link href="./_app/immutable/chunks/BdE5QErm.js" rel="modulepreload">
-		<link href="./_app/immutable/entry/app.C22U-HPF.js" rel="modulepreload">
+		<script>
+			/*
+			 * Apply the saved theme (TODO-004) before first paint, so a Dark or Tiger user
+			 * doesn't get a flash of the Cream palette on every cold load. The app re-asserts
+			 * this on hydration (applyTheme in +layout.svelte); this only wins the race to
+			 * the first frame.
+			 *
+			 * It runs before any module can load, so the id → theme-colour map is duplicated
+			 * from src/lib/ui/theme.ts — keep the two in sync when adding a theme. Reads the
+			 * same localStorage key the app writes; no network (privacy, SPEC §1). If storage
+			 * is unavailable or the value is junk, it falls back silently to Cream, which is
+			 * the unqualified :root palette anyway.
+			 */
+			(function () {
+				try {
+					var raw = localStorage.getItem('bids.settings.v1');
+					var id = raw ? JSON.parse(raw).themeId : 'cream';
+					var colors = { cream: '#9c4632', dark: '#4f8ef0', tiger: '#d9631a' };
+					if (!colors[id]) id = 'cream';
+					document.documentElement.setAttribute('data-theme', id);
+					var meta = document.querySelector('meta[name="theme-color"]');
+					if (meta) meta.setAttribute('content', colors[id]);
+				} catch (e) {
+					/* storage unavailable or unparseable — Cream (the base :root) applies */
+				}
+			})();
+		</script>
+		<link href="./_app/immutable/entry/start.DC_SZoxU.js" rel="modulepreload">
+		<link href="./_app/immutable/chunks/Co6EXaDi.js" rel="modulepreload">
+		<link href="./_app/immutable/chunks/BBnQ8_jW.js" rel="modulepreload">
+		<link href="./_app/immutable/entry/app.myuDLoA4.js" rel="modulepreload">
 		<link href="./_app/immutable/chunks/xihTtKlq.js" rel="modulepreload">
-		<link href="./_app/immutable/nodes/0.D9cmwSc8.js" rel="modulepreload">
-		<link href="./_app/immutable/nodes/3.BRfuHRFu.js" rel="modulepreload">
+		<link href="./_app/immutable/nodes/0.vSWvzuyz.js" rel="modulepreload">
+		<link href="./_app/immutable/chunks/DT2Y5Vl8.js" rel="modulepreload">
+		<link href="./_app/immutable/nodes/3.DuF5Hqtx.js" rel="modulepreload">
 		<!--12qhfyh--><link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJCaWRzIj4KCTwhLS0gU2FtZSBhcnR3b3JrIGFzIHN0YXRpYy9pY29uLnN2ZywgaW1wb3J0ZWQgYnkgdGhlIGxheW91dCBhcyB0aGUgYnJvd3NlciBmYXZpY29uLiAtLT4KCTxyZWN0IHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgcng9IjEyIiBmaWxsPSIjZjdmMmU3IiAvPgoJPGcgc3Ryb2tlPSIjOWM0NjMyIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPgoJCTxyZWN0IHg9IjEyIiB5PSIxNiIgd2lkdGg9IjI0IiBoZWlnaHQ9IjM0IiByeD0iNCIgZmlsbD0iI2ZmZmRmNiIgdHJhbnNmb3JtPSJyb3RhdGUoLTEwIDI0IDMzKSIgLz4KCQk8cmVjdCB4PSIyOCIgeT0iMTQiIHdpZHRoPSIyNCIgaGVpZ2h0PSIzNCIgcng9IjQiIGZpbGw9IiNmZmZkZjYiIHRyYW5zZm9ybT0icm90YXRlKDEwIDQwIDMxKSIgLz4KCTwvZz4KCTxnIGZpbGw9IiNiMDUwM2EiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtd2VpZ2h0PSI3MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPgoJCTx0ZXh0IHg9IjIzIiB5PSI0MSIgZm9udC1zaXplPSIxOCIgdHJhbnNmb3JtPSJyb3RhdGUoLTEwIDIzIDM2KSI+MzwvdGV4dD4KCQk8dGV4dCB4PSI0MSIgeT0iMzkiIGZvbnQtc2l6ZT0iMTgiIHRyYW5zZm9ybT0icm90YXRlKDEwIDQxIDM0KSI+OTwvdGV4dD4KCTwvZz4KPC9zdmc+Cg=="/><!----><!--cwls5q--><meta name="description" content="Build information for the Bids app."/><!----><title>About — Bids</title>
-		<link href="./_app/immutable/assets/0.KquYmHrZ.css" rel="stylesheet">
+		<link href="./_app/immutable/assets/0.D0c2L6X6.css" rel="stylesheet">
 		<link href="./_app/immutable/assets/3.a2zFQHo5.css" rel="stylesheet">
 	</head>
 	<body data-sveltekit-preload-data="hover">
-		<div style="display: contents"><!--[--><!--[0--><!--[--><!--[--><main class="svelte-cwls5q"><header class="svelte-cwls5q"><h1 class="svelte-cwls5q">About</h1> <p class="subtitle svelte-cwls5q">Build information</p></header> <dl class="info svelte-cwls5q"><dt class="svelte-cwls5q">Version</dt> <dd class="svelte-cwls5q">0.0.2</dd> <dt class="svelte-cwls5q">Built</dt> <dd class="svelte-cwls5q">13-JUL-2026 19:23 ADT</dd> <dt class="svelte-cwls5q">Commit</dt> <dd class="svelte-cwls5q">44d16a3</dd></dl> <section class="attribution svelte-cwls5q"><p>Bids is free and open source, released under the Apache 2.0 license.</p> <p><a class="repo-link svelte-cwls5q" href="https://github.com/codetojoy/bids" target="_blank" rel="noopener noreferrer">View the source on GitHub →</a></p></section> <p class="note svelte-cwls5q"><a href="./" class="svelte-cwls5q">← Home</a></p></main><!--]--><!----><!--]--><!--]--> <!--[-1--><!--]--><!--]-->
+		<div style="display: contents"><!--[--><!--[0--><!--[--><!--[--><main class="svelte-cwls5q"><header class="svelte-cwls5q"><h1 class="svelte-cwls5q">About</h1> <p class="subtitle svelte-cwls5q">Build information</p></header> <dl class="info svelte-cwls5q"><dt class="svelte-cwls5q">Version</dt> <dd class="svelte-cwls5q">0.0.4</dd> <dt class="svelte-cwls5q">Built</dt> <dd class="svelte-cwls5q">13-JUL-2026 19:55 ADT</dd> <dt class="svelte-cwls5q">Commit</dt> <dd class="svelte-cwls5q">d4e951d</dd></dl> <section class="attribution svelte-cwls5q"><p>Bids is free and open source, released under the Apache 2.0 license.</p> <p><a class="repo-link svelte-cwls5q" href="https://github.com/codetojoy/bids" target="_blank" rel="noopener noreferrer">View the source on GitHub →</a></p></section> <p class="note svelte-cwls5q"><a href="./" class="svelte-cwls5q">← Home</a></p></main><!--]--><!----><!--]--><!--]--> <!--[-1--><!--]--><!--]-->
 			
 			<script>
 				{
-					__sveltekit_1qhfitt = {
+					__sveltekit_54onni = {
 						base: new URL(".", location).pathname.slice(0, -1),
 						assets: "/bids"
 					};
@@ -74,8 +102,8 @@
 					const element = document.currentScript.parentElement;
 
 					Promise.all([
-						import("./_app/immutable/entry/start.DTpsuq-B.js"),
-						import("./_app/immutable/entry/app.C22U-HPF.js")
+						import("./_app/immutable/entry/start.DC_SZoxU.js"),
+						import("./_app/immutable/entry/app.myuDLoA4.js")
 					]).then(([kit, app]) => {
 						kit.start(app, element, {
 							node_ids: [0, 3],
