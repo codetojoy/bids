@@ -3,14 +3,19 @@
 	import { dev } from '$app/environment';
 	import { base } from '$app/paths';
 	import favicon from '$lib/assets/favicon.svg';
+	import { applyTheme, loadSettings } from '$lib/ui/settings';
 
 	let { children } = $props();
 
-	// Register the service worker ourselves, production-only. SvelteKit's
-	// auto-registration is disabled (serviceWorker.register: false in vite.config.ts)
-	// because it also fires in dev as a module worker that Chrome can't evaluate.
-	// The built worker is a classic script served at `${base}/service-worker.js`.
 	onMount(() => {
+		// Stamp the saved theme on <html> (TODO-003). Reading localStorage is browser-only,
+		// so it happens here rather than during init — the routes are all prerendered.
+		applyTheme(loadSettings().themeId);
+
+		// Register the service worker ourselves, production-only. SvelteKit's
+		// auto-registration is disabled (serviceWorker.register: false in vite.config.ts)
+		// because it also fires in dev as a module worker that Chrome can't evaluate.
+		// The built worker is a classic script served at `${base}/service-worker.js`.
 		if (!dev && 'serviceWorker' in navigator) {
 			navigator.serviceWorker.register(`${base}/service-worker.js`);
 		}
@@ -43,6 +48,12 @@
 	 * Design tokens for the warm print-inspired theme, shared with the sibling
 	 * forty-fives app: cream paper, terracotta accents, hairline rules,
 	 * Lora display + Lato body.
+	 *
+	 * This is the "Cream" theme of /config (TODO-003) and the default, so it sits on
+	 * :root unqualified — it therefore also applies before the saved theme is read, and
+	 * if localStorage is unavailable. A second theme is added as a
+	 * `:global(:root[data-theme='<id>'])` block overriding these variables, plus an entry
+	 * in src/lib/ui/theme.ts; nothing else in the app needs to change.
 	 */
 	:global(:root) {
 		--bg: #f7f2e7;

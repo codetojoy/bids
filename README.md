@@ -14,8 +14,10 @@ PWA:
   Brahms and Chopin) plus the kitty, giving everyone 8 cards and the game 8 rounds. Each
   round shows the prize card, you bid a card from your hand, all four bids are revealed, and
   the highest takes the prize card's points. The game ends with the final standings.
-- **Config** — placeholder; deck size, player count, names, and strategy assignment will live
-  here. For now they are the fixed defaults above.
+- **Config** — one setting so far: **Theme**, whose only option is "Cream" (the palette the
+  app already wears). Your choice is saved on this device and nowhere else. Deck size, player
+  count, names, and strategy assignment will join it here; for now they are the fixed
+  defaults above.
 - **About** — version, build time, and git commit of the running build.
 
 The computer players all use the `nextCard` strategy for now — bid the next card in the hand
@@ -80,9 +82,9 @@ sibling `forty-fives` app uses):
 | SPEC §7 | This repo |
 |---|---|
 | `src/domain/` | `src/lib/domain/` — pure game logic, **zero UI dependencies** |
-| `src/ui/` | `src/lib/ui/` + `src/routes/` — Svelte components (`/`, `/play`, `/config`, `/about`) |
+| `src/ui/` | `src/lib/ui/` + `src/routes/` — Svelte components (`/`, `/play`, `/config`, `/about`), the theme registry, and the `localStorage` settings |
 | `src/assets/` | `src/lib/assets/` — avatars, and game data as JSON |
-| `tests/` | `tests/domain/` |
+| `tests/` | `tests/domain/` + `tests/ui/` |
 
 ## License
 

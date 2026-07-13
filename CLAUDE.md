@@ -15,8 +15,9 @@ is `doc/SPEC.md` — read both before making design decisions. Work items arrive
 computer players (Mozart, Brahms, Chopin) plus the kitty — five piles of 8, so a game is 8
 rounds — and plays through to a winner. Every computer seat uses the `nextCard` strategy (bid
 the next card in the hand as dealt), a deliberately trivial baseline. Deck size, player names,
-and strategy assignment are hard-coded in `DEFAULT_CONFIG` and become configurable later;
-`/config` is still a placeholder, and nothing persists to `localStorage` yet.
+and strategy assignment are hard-coded in `DEFAULT_CONFIG` and become configurable later.
+`/config` (TODO-003) holds one real setting so far — **Theme**, whose only option is "Cream",
+the palette the app already wears — and it is the only thing that persists.
 
 **The tie invariant (confirmed with the human):** the deck is suitless and every card unique,
 so two players can never bid the same number — there is no tie-break rule, and none should be
@@ -74,6 +75,20 @@ Domain module map:
 
 Seat 0 is always the human (`HUMAN_ID`) and is the only seat with a `null` strategy.
 
+### Themes and settings (`src/lib/ui/`)
+
+`theme.ts` is the registry (`THEMES`, `DEFAULT_THEME_ID`, `parseThemeId`) and is pure, so it is
+unit-tested directly. `settings.ts` is the only module that touches `localStorage` (key
+`bids.settings.v1`); it is guarded by `browser` because every route is prerendered, and every
+read goes through `parseThemeId`, so a corrupt or stale stored value falls back to the default
+instead of throwing.
+
+**Adding a theme is two edits and nothing else:** an entry in `THEMES`, and a
+`:global(:root[data-theme='<id>'])` block in `+layout.svelte` overriding the design tokens. The
+Cream tokens sit on unqualified `:root` so they also apply before the saved theme is read and
+when storage is unavailable; `+layout.svelte` stamps `data-theme` on `<html>` in `onMount`. The
+`/config` dropdown renders from `THEMES` and needs no changes.
+
 ### The random deal must not happen at prerender time
 
 `/play` deals in `onMount`, not during component init, and renders "Dealing…" until then. All
@@ -102,12 +117,15 @@ replaceable, the rules engine is not. `tests/domain/` covers each module plus wh
 properties over seeded games: **points are conserved** (the scores must sum to the kitty's face
 value), **cards are conserved** (every dealt card is bid exactly once), and every game
 terminates in exactly `kitty.length` rounds with all hands empty. Add to those invariants
-rather than only testing new functions in isolation.
+rather than only testing new functions in isolation. `tests/ui/` covers the pure parts of the
+UI layer (the theme registry and the normalization of an untrusted stored blob); the
+`localStorage` plumbing itself is browser-only and is verified by driving the real page.
 
 ## Constraints worth remembering
 
 - Privacy first: no accounts, no analytics, no network calls beyond loading the site. State
-  persists only to `localStorage` (SPEC §1, §6).
+  persists only to `localStorage` (SPEC §1, §6) — today just the theme; the in-progress game is
+  not saved.
 - Accessibility: large tap targets (≥48px), high contrast, respect OS font scaling.
 - License is Apache 2.0. Any new visual asset must be CC0/MIT/Apache-compatible and recorded
   in `ASSETS.md` with its provenance (third-party today: the Lato/Lora fonts, SIL OFL, and the
