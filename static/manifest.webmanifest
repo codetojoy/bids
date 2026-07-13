@@ -1,0 +1,12 @@
+{
+	"name": "Bids",
+	"short_name": "Bids",
+	"description": "A simple bidding game: play your cards as bids to win the prize cards.",
+	"start_url": ".",
+	"scope": "./",
+	"display": "standalone",
+	"orientation": "portrait",
+	"background_color": "#f7f2e7",
+	"theme_color": "#9c4632",
+	"icons": [{ "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

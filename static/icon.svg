@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Bids">
+	<!-- Original app icon: two number cards fanned on a cream field, in the app's
+	     cream/rust palette (see doc/TODO-001.md, ASSETS.md). -->
+	<rect width="64" height="64" rx="12" fill="#f7f2e7" />
+	<g stroke="#9c4632" stroke-width="2" stroke-linejoin="round">
+		<rect x="12" y="16" width="24" height="34" rx="4" fill="#fffdf6" transform="rotate(-10 24 33)" />
+		<rect x="28" y="14" width="24" height="34" rx="4" fill="#fffdf6" transform="rotate(10 40 31)" />
+	</g>
+	<g fill="#b0503a" font-family="Georgia, 'Times New Roman', serif" font-weight="700" text-anchor="middle">
+		<text x="23" y="41" font-size="18" transform="rotate(-10 23 36)">3</text>
+		<text x="41" y="39" font-size="18" transform="rotate(10 41 34)">9</text>
+	</g>
+</svg>
