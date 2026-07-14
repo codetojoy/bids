@@ -67,6 +67,24 @@ const STRATEGIES: Record<StrategyId, Strategy> = {
 /** Every strategy a computer player may be given, in the order the UI lists them. */
 export const STRATEGY_IDS: readonly StrategyId[] = Object.keys(STRATEGIES) as StrategyId[];
 
+export function isStrategyId(value: unknown): value is StrategyId {
+	return typeof value === 'string' && (STRATEGY_IDS as readonly string[]).includes(value);
+}
+
+/**
+ * "Deal me one at random each game" — what a seat may be *configured* with (TODO-007), as
+ * against what it ends up *playing*. It is deliberately not a `StrategyId`: nothing can bid
+ * `auto`, and it is resolved to a real strategy at the deal (`assignStrategies`).
+ */
+export const AUTO = 'auto';
+
+/** What a computer seat is set to on /config: a named strategy, or Auto. */
+export type StrategyChoice = StrategyId | typeof AUTO;
+
+export function isStrategyChoice(value: unknown): value is StrategyChoice {
+	return value === AUTO || isStrategyId(value);
+}
+
 export function getStrategy(id: StrategyId): Strategy {
 	const strategy = STRATEGIES[id];
 	if (!strategy) throw new Error(`unknown strategy: ${id}`);
@@ -83,17 +101,26 @@ export const STRATEGY_LABELS: Record<StrategyId, string> = {
 };
 
 /**
- * Pick `count` *distinct* strategies at random — how /play assigns the computer seats, so
- * no two of them play the same way and every game is a different table (TODO-006).
+ * Pick `count` *distinct* strategies at random — how the Auto seats are filled, so no two of
+ * them play the same way and every game is a different table (TODO-006).
+ *
+ * `exclude` is what the seats the user chose *by hand* are already playing: an Auto seat
+ * draws from what's left, so Auto never accidentally duplicates a deliberate choice
+ * (TODO-007). Two seats set to Min by hand are honoured as written — only Auto is
+ * constrained.
  *
  * Takes an `Rng` rather than reaching for `Math.random`, so a game stays reproducible from
  * its seed: same seed, same opponents, same deal.
  */
-export function randomStrategies(count: number, rng: Rng): StrategyId[] {
-	if (!Number.isInteger(count) || count < 0 || count > STRATEGY_IDS.length) {
-		throw new Error(`cannot pick ${count} distinct strategies from ${STRATEGY_IDS.length}`);
+export function randomStrategies(
+	count: number,
+	rng: Rng,
+	exclude: readonly StrategyId[] = []
+): StrategyId[] {
+	const pool = STRATEGY_IDS.filter((id) => !exclude.includes(id));
+	if (!Number.isInteger(count) || count < 0 || count > pool.length) {
+		throw new Error(`cannot pick ${count} distinct strategies from ${pool.length}`);
 	}
-	const pool = [...STRATEGY_IDS];
 	const picked: StrategyId[] = [];
 	for (let i = 0; i < count; i++) {
 		picked.push(...pool.splice(rng.nextInt(pool.length), 1));

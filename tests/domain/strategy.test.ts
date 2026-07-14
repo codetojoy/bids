@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { makeRng } from '../../src/lib/domain/rng.ts';
 import {
+	AUTO,
 	getStrategy,
+	isStrategyChoice,
+	isStrategyId,
 	randomStrategies,
 	STRATEGY_IDS,
 	STRATEGY_LABELS
@@ -159,5 +162,35 @@ describe('randomStrategies', () => {
 
 	it('refuses to pick more distinct strategies than exist', () => {
 		expect(() => randomStrategies(STRATEGY_IDS.length + 1, makeRng(1))).toThrow(/distinct/);
+	});
+
+	/* TODO-007: an Auto seat draws from what the hand-picked seats left behind. */
+	it('never picks an excluded strategy', () => {
+		for (let seed = 0; seed < 40; seed++) {
+			const picked = randomStrategies(2, makeRng(seed), ['min', 'max']);
+			expect(picked).not.toContain('min');
+			expect(picked).not.toContain('max');
+			expect(new Set(picked).size).toBe(2);
+		}
+	});
+
+	it('counts the exclusions against what is left to pick from', () => {
+		expect(() => randomStrategies(3, makeRng(1), ['min', 'max', 'nearest'])).toThrow(/distinct/);
+	});
+});
+
+describe('the strategy choices a seat can be configured with (TODO-007)', () => {
+	it('recognizes every strategy id, and Auto, and nothing else', () => {
+		for (const id of STRATEGY_IDS) {
+			expect(isStrategyId(id)).toBe(true);
+			expect(isStrategyChoice(id)).toBe(true);
+		}
+		expect(isStrategyChoice(AUTO)).toBe(true);
+		// Auto is a *setting*, not a strategy: nothing can bid it.
+		expect(isStrategyId(AUTO)).toBe(false);
+		for (const bad of ['telepathy', '', null, undefined, 7, {}]) {
+			expect(isStrategyChoice(bad)).toBe(false);
+			expect(isStrategyId(bad)).toBe(false);
+		}
 	});
 });

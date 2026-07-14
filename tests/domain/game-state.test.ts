@@ -1,18 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { validDeckSizes } from '../../src/lib/domain/deck.ts';
 import {
-	assignRandomStrategies,
+	assignStrategies,
 	currentPrize,
 	DEFAULT_CONFIG,
 	HUMAN_ID,
 	playRound,
 	startGame,
 	type GameConfig,
-	type GameState
+	type GameState,
+	type SeatChoice
 } from '../../src/lib/domain/game-state.ts';
 import { gameWinners } from '../../src/lib/domain/scoring.ts';
 import { makeRng } from '../../src/lib/domain/rng.ts';
-import { STRATEGY_IDS, type StrategyId } from '../../src/lib/domain/strategy.ts';
+import { AUTO, STRATEGY_IDS, type StrategyId } from '../../src/lib/domain/strategy.ts';
 
 const config = (seed: number): GameConfig => ({ ...DEFAULT_CONFIG, seed });
 
@@ -140,9 +141,16 @@ describe('playRound', () => {
 	});
 });
 
-describe('assignRandomStrategies (TODO-006)', () => {
-	it('gives every computer seat a distinct strategy and leaves the human seat alone', () => {
-		const players = assignRandomStrategies(DEFAULT_CONFIG.players, makeRng(3));
+describe('assignStrategies (TODO-006, TODO-007)', () => {
+	/** The table as /play hands it over: the human seat, then three seats left on Auto. */
+	const allAuto = (): SeatChoice[] =>
+		DEFAULT_CONFIG.players.map((p, id) => ({
+			name: p.name,
+			strategy: id === HUMAN_ID ? null : AUTO
+		}));
+
+	it('deals every Auto seat a distinct strategy, and leaves the human seat alone', () => {
+		const players = assignStrategies(allAuto(), makeRng(3));
 
 		expect(players.map((p) => p.name)).toEqual(DEFAULT_CONFIG.players.map((p) => p.name));
 		expect(players[HUMAN_ID].strategy).toBeNull();
@@ -153,21 +161,80 @@ describe('assignRandomStrategies (TODO-006)', () => {
 	});
 
 	it('keeps the game reproducible from its seed: same seed, same opponents', () => {
-		expect(assignRandomStrategies(DEFAULT_CONFIG.players, makeRng(11))).toEqual(
-			assignRandomStrategies(DEFAULT_CONFIG.players, makeRng(11))
+		expect(assignStrategies(allAuto(), makeRng(11))).toEqual(
+			assignStrategies(allAuto(), makeRng(11))
 		);
 	});
 
-	it('plays out from a randomly-strategied table, conserving points and cards', () => {
+	it('leaves a seat that was set by hand exactly as it was set', () => {
+		const seats: SeatChoice[] = [
+			{ name: 'You', strategy: null },
+			{ name: 'Mozart', strategy: 'min' },
+			{ name: 'Brahms', strategy: 'max' },
+			{ name: 'Chopin', strategy: 'nearest' }
+		];
+		expect(assignStrategies(seats, makeRng(4))).toEqual([
+			{ name: 'You', strategy: null },
+			{ name: 'Mozart', strategy: 'min' },
+			{ name: 'Brahms', strategy: 'max' },
+			{ name: 'Chopin', strategy: 'nearest' }
+		]);
+	});
+
+	it('honours a hand-picked duplicate: two seats set to min both play min', () => {
+		const seats: SeatChoice[] = [
+			{ name: 'You', strategy: null },
+			{ name: 'Mozart', strategy: 'min' },
+			{ name: 'Brahms', strategy: 'min' },
+			{ name: 'Chopin', strategy: AUTO }
+		];
+		const players = assignStrategies(seats, makeRng(5));
+		expect(players[1].strategy).toBe('min');
+		expect(players[2].strategy).toBe('min');
+		// Only Auto is constrained — and it steers clear of the strategy already at the table.
+		expect(players[3].strategy).not.toBe('min');
+	});
+
+	/* The point of the constraint: Auto fills in around the deliberate choices. */
+	it('never deals an Auto seat a strategy a seat was set to by hand', () => {
+		for (let seed = 0; seed < 40; seed++) {
+			const seats: SeatChoice[] = [
+				{ name: 'You', strategy: null },
+				{ name: 'Mozart', strategy: 'hybrid' },
+				{ name: 'Brahms', strategy: AUTO },
+				{ name: 'Chopin', strategy: AUTO }
+			];
+			const dealt = assignStrategies(seats, makeRng(seed)).slice(2).map((p) => p.strategy);
+			expect(dealt).not.toContain('hybrid');
+			expect(new Set(dealt).size).toBe(2);
+		}
+	});
+
+	it('plays out from an Auto table, conserving points and cards', () => {
 		for (let seed = 0; seed < 25; seed++) {
 			const start = startGame({
 				...config(seed),
-				players: assignRandomStrategies(DEFAULT_CONFIG.players, makeRng(seed))
+				players: assignStrategies(allAuto(), makeRng(seed))
 			});
 			const done = playOut(start);
 			expect(done.scores.reduce((a, b) => a + b, 0)).toBe(start.kitty.reduce((a, b) => a + b, 0));
 			expect(done.hands.every((h) => h.length === 0)).toBe(true);
 		}
+	});
+
+	it('plays out from a table named and strategied by hand (TODO-007)', () => {
+		const seats: SeatChoice[] = [
+			{ name: 'You', strategy: null },
+			{ name: 'Ada', strategy: 'max' },
+			{ name: 'Grace', strategy: 'max' },
+			{ name: 'Alan', strategy: AUTO }
+		];
+		const start = startGame({ ...config(12), players: assignStrategies(seats, makeRng(12)) });
+		expect(start.players.map((p) => p.name)).toEqual(['You', 'Ada', 'Grace', 'Alan']);
+
+		const done = playOut(start);
+		expect(done.scores.reduce((a, b) => a + b, 0)).toBe(start.kitty.reduce((a, b) => a + b, 0));
+		expect(done.hands.every((h) => h.length === 0)).toBe(true);
 	});
 });
 

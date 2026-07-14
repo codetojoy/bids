@@ -13,9 +13,13 @@ import {
 	themeLabel
 } from '../../src/lib/ui/theme.ts';
 import {
+	defaultSeats,
 	defaultSettings,
+	isValidName,
 	normalizeSettings,
 	parseDeckSize,
+	parseName,
+	parseSeats,
 	parseShowStrategy
 } from '../../src/lib/ui/settings.ts';
 
@@ -93,18 +97,83 @@ describe('parseShowStrategy', () => {
 	});
 });
 
+describe('isValidName / parseName (TODO-007)', () => {
+	it('accepts a name of 4 to 10 characters', () => {
+		for (const name of ['Ada!', 'Mozart', 'Ludwig van'.slice(0, 10)]) {
+			expect(isValidName(name)).toBe(true);
+			expect(parseName(name, 'Mozart')).toBe(name);
+		}
+	});
+
+	it('rejects one that is too short, too long, or not a string at all', () => {
+		for (const bad of ['', 'Moz', '   ', 'Rachmaninoff', 4, null, undefined, {}, ['Ada']]) {
+			expect(isValidName(bad)).toBe(false);
+			expect(parseName(bad, 'Mozart')).toBe('Mozart'); // the seat's own default, not a blank
+		}
+	});
+
+	it('measures and stores the trimmed name — surrounding space is not length', () => {
+		expect(isValidName('  Ada  ')).toBe(false); // 'Ada' is 3
+		expect(parseName('  Ada  ', 'Mozart')).toBe('Mozart');
+		expect(parseName('  Grace  ', 'Mozart')).toBe('Grace');
+	});
+});
+
+describe('parseSeats (TODO-007)', () => {
+	it('reads well-formed seats', () => {
+		expect(
+			parseSeats([
+				{ name: 'Ada', strategy: 'min' }, // too short — falls back to the seat default
+				{ name: 'Grace', strategy: 'max' },
+				{ name: 'Alan', strategy: 'auto' }
+			])
+		).toEqual([
+			{ name: 'Mozart', strategy: 'min' },
+			{ name: 'Grace', strategy: 'max' },
+			{ name: 'Alan', strategy: 'auto' }
+		]);
+	});
+
+	/* Positional and always three seats: a blob with too few, too many, or junk in one of them
+	   still yields a playable table rather than a game with no opponents. */
+	it('returns the default seats for a missing or malformed array', () => {
+		for (const bad of [undefined, null, 'Mozart', 42, {}, []]) {
+			expect(parseSeats(bad)).toEqual(defaultSeats());
+		}
+	});
+
+	it('fills the seats a short array does not reach, and drops the extras', () => {
+		expect(parseSeats([{ name: 'Grace', strategy: 'hybrid' }])).toEqual([
+			{ name: 'Grace', strategy: 'hybrid' },
+			{ name: 'Brahms', strategy: 'auto' },
+			{ name: 'Chopin', strategy: 'auto' }
+		]);
+		expect(parseSeats(Array(9).fill({ name: 'Grace', strategy: 'min' }))).toHaveLength(3);
+	});
+
+	it('salvages the good half of a corrupt seat', () => {
+		expect(parseSeats([{ name: 'Grace', strategy: 'telepathy' }, null, { strategy: 'max' }])).toEqual([
+			{ name: 'Grace', strategy: 'auto' }, // unknown strategy → Auto, the name survives
+			{ name: 'Brahms', strategy: 'auto' },
+			{ name: 'Chopin', strategy: 'max' } // missing name → the seat default, the choice survives
+		]);
+	});
+});
+
 describe('normalizeSettings', () => {
+	const seats = [
+		{ name: 'Grace', strategy: 'max' as const },
+		{ name: 'Brahms', strategy: 'auto' as const },
+		{ name: 'Chopin', strategy: 'auto' as const }
+	];
+
 	it('reads a well-formed stored blob', () => {
-		expect(normalizeSettings({ themeId: 'cream', deckSize: 40, showStrategy: false })).toEqual({
-			themeId: 'cream',
-			deckSize: 40,
-			showStrategy: false
-		});
-		expect(normalizeSettings({ themeId: 'tiger', deckSize: 25, showStrategy: true })).toEqual({
-			themeId: 'tiger',
-			deckSize: 25,
-			showStrategy: true
-		});
+		expect(
+			normalizeSettings({ themeId: 'cream', deckSize: 40, showStrategy: false, players: seats })
+		).toEqual({ themeId: 'cream', deckSize: 40, showStrategy: false, players: seats });
+		expect(
+			normalizeSettings({ themeId: 'tiger', deckSize: 25, showStrategy: true, players: seats })
+		).toEqual({ themeId: 'tiger', deckSize: 25, showStrategy: true, players: seats });
 	});
 
 	it('returns the defaults for a missing, empty, or malformed blob', () => {
@@ -113,28 +182,26 @@ describe('normalizeSettings', () => {
 		}
 	});
 
-	/* A blob written before deck size or the strategy toggle existed (TODO-003 → TODO-005 →
-	   TODO-006) must still load: each missing field takes its default rather than blanking
-	   the settings beside it. */
+	/* A blob written before deck size, the strategy toggle, or the players existed (TODO-003 →
+	   TODO-005 → TODO-006 → TODO-007) must still load: each missing field takes its default
+	   rather than blanking the settings beside it. */
 	it('fills in a field an older build never wrote', () => {
 		expect(normalizeSettings({ themeId: 'tiger' })).toEqual({
-			themeId: 'tiger',
-			deckSize: 40,
-			showStrategy: false
+			...defaultSettings(),
+			themeId: 'tiger'
 		});
-		expect(normalizeSettings({ themeId: 'tiger', deckSize: 25 })).toEqual({
+		expect(normalizeSettings({ themeId: 'tiger', deckSize: 25, showStrategy: true })).toEqual({
+			...defaultSettings(),
 			themeId: 'tiger',
 			deckSize: 25,
-			showStrategy: false
+			showStrategy: true
 		});
 	});
 
 	it('salvages the good half of a partly-corrupt blob', () => {
-		expect(normalizeSettings({ themeId: 'midnight', deckSize: 25, showStrategy: true })).toEqual({
-			themeId: 'cream',
-			deckSize: 25,
-			showStrategy: true
-		});
+		expect(
+			normalizeSettings({ themeId: 'midnight', deckSize: 25, showStrategy: true, players: seats })
+		).toEqual({ themeId: 'cream', deckSize: 25, showStrategy: true, players: seats });
 	});
 
 	it('ignores unknown keys rather than carrying them through', () => {

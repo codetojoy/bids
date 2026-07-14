@@ -11,17 +11,23 @@ wins the prize card's points. The rules are `doc/GameRules.md`; the authoritativ
 is `doc/SPEC.md` — read both before making design decisions. Work items arrive as
 `doc/TODO-*.md` files.
 
-**Current state: one playable game.** `/play` deals the deck to you and three computer players
-(Mozart, Brahms, Chopin) plus the kitty, and plays through to a winner. Each new game deals the
-three computer seats a **distinct strategy at random** (`assignRandomStrategies`, TODO-006) out
-of the five in `strategy.ts` — so the seats' names are hard-coded in `DEFAULT_CONFIG` but the
-strategies beside them are not, and its `nextCard` entries are only a deterministic baseline for
-tests. The strategies come from the game's own seed, so a seed still reproduces the whole table:
-same opponents, same deal.
+**Current state: one playable, configurable game.** `/play` deals the deck to you and three
+computer players plus the kitty, and plays through to a winner.
 
-`/config` holds the three settings that persist: **Theme** (Cream, Dark, Tiger; TODO-003,
-TODO-004), **Deck size** (TODO-005), and **Display strategy** (TODO-006 — a boolean; when on,
-`/play` names the seat "Mozart (Min)").
+`/config` holds everything that persists: **Theme** (Cream, Dark, Tiger; TODO-003, TODO-004),
+**Deck size** (TODO-005), **Display strategy** (TODO-006 — a boolean; when on, `/play` names the
+seat "Mozart (Min)"), and the three **computer players** (TODO-007 — a name of 4–10 characters
+and a strategy each). `DEFAULT_CONFIG` in the domain now supplies only the *defaults* for an
+unconfigured seat; the live table comes from settings.
+
+**Auto is a setting, not a strategy.** A seat is configured with a `StrategyChoice` — one of the
+five `StrategyId`s, or `AUTO` — and `assignStrategies(seats, rng)` (game-state.ts) resolves that
+into the game's players at the deal: a hand-picked strategy is played as written, and each `AUTO`
+seat is dealt a *distinct* one drawn from the strategies **no seat was set to by hand**, so Auto
+never accidentally duplicates a deliberate choice. Two seats set to Min by hand are honoured as
+written — only Auto is constrained. Nothing can bid `AUTO` (`isStrategyId(AUTO)` is false), and
+the draw comes from the game's own seed, so a seed still reproduces the whole table: same
+opponents, same deal.
 
 **Deck size and the shape of a game.** The deck is dealt out *evenly* to the players **and the
 kitty** — `playerCount + 1` piles — so the deck size determines everything else: each hand, the
@@ -85,10 +91,12 @@ Domain module map:
   toward the *lower* card, and the distance is never zero because the prize is in nobody's hand),
   and `hybrid` (`nearest` when `prize > deckSize / 2`, else `min` — note the test is *strict*, so
   exactly half the deck is a small prize). A sixth is a new entry in `STRATEGIES` plus a label,
-  and nothing else. `randomStrategies(count, rng)` picks distinct ones for the seats
+  and nothing else — `/config` renders its dropdown from `STRATEGY_IDS`. Also the `AUTO`
+  sentinel, `StrategyChoice`, and `randomStrategies(count, rng, exclude)`, which picks distinct
+  strategies from outside `exclude`
 - `game-state.ts` — `startGame` and the `playRound(state, humanCard)` transition; validates and
   throws on an impossible move (a card the human doesn't hold, playing past the end); plus
-  `assignRandomStrategies(players, rng)`, which `/play` uses to deal each new game's opponents
+  `assignStrategies(seats, rng)`, which turns the configured seats into a table (see Auto above)
 - `scoring.ts` — `resolveRound` (highest bid wins), `standings`, `gameWinners`
 
 Seat 0 is always the human (`HUMAN_ID`) and is the only seat with a `null` strategy.
@@ -108,11 +116,18 @@ reproducible and the whole-game property tests lose their footing.
 unit-tested directly. `settings.ts` is the only module that touches `localStorage` (key
 `bids.settings.v1`) and the live DOM; it is guarded by `browser` because every route is
 prerendered. Every field of the stored blob is coerced on read (`parseThemeId`, `parseDeckSize`,
-`parseShowStrategy`), field by field, so a corrupt, stale, or older-build value falls back to its
-default instead of throwing or blanking the app — a blob written before a setting existed still
-loads, and a bad theme doesn't take a good deck size down with it. Settings are read at the
-moment they're used (`/play` reads the deck size and the strategy toggle when it deals), so a
-change applies to the next game, never to one in progress.
+`parseShowStrategy`, `parseSeats`), field by field — and, for the seats, *seat by seat and field
+within seat* — so a corrupt, stale, or older-build value falls back to its default instead of
+throwing or blanking the app. A blob written before a setting existed still loads, a bad theme
+doesn't take a good deck size down with it, and a junk seat doesn't cost you the other two or
+leave the game without an opponent. Settings are read at the moment they're used (`/play` reads
+the deck size, the strategy toggle, and the seats when it deals), so a change applies to the next
+game, never to one in progress.
+
+A name is 4–10 characters, trimmed (`NAME_MIN_LENGTH`/`NAME_MAX_LENGTH`, `isValidName`).
+`maxlength` stops the long end in the input; the short end can't be, so `/config` keeps what you
+typed on screen, flags it, and simply does not commit it — the last valid name stays saved.
+Duplicate names are allowed on purpose (the scoreboard is by seat).
 
 **Adding a theme is three edits, and every one of them is required:**
 

@@ -3,7 +3,7 @@
 	import { base } from '$app/paths';
 	import type { Card } from '$lib/domain/deck';
 	import {
-		assignRandomStrategies,
+		assignStrategies,
 		currentPrize,
 		DEFAULT_CONFIG,
 		HUMAN_ID,
@@ -28,15 +28,17 @@
 
 	// The settings come from /config, read at deal time — so a change starts applying with the
 	// next new game, and a game in progress keeps the deck and the opponents it was dealt.
-	// Each game also deals its computer seats a distinct strategy at random (TODO-006), from
-	// the game's own seed, so the whole table is reproducible from it.
+	// The opponents are the seats configured on /config (TODO-007): each plays the strategy it
+	// was given, and an Auto seat is dealt one from the game's own seed, so the whole table is
+	// still reproducible from that seed.
 	function newGame() {
 		const settings = loadSettings();
 		const seed = randomSeed();
 		showStrategy = settings.showStrategy;
+		const seats = [DEFAULT_CONFIG.players[HUMAN_ID], ...settings.players];
 		return startGame({
 			deckSize: settings.deckSize,
-			players: assignRandomStrategies(DEFAULT_CONFIG.players, makeRng(seed)),
+			players: assignStrategies(seats, makeRng(seed)),
 			seed
 		});
 	}

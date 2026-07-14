@@ -11,10 +11,10 @@ project plan.
 PWA:
 
 - **Play** — a full game: the deck is dealt to you and three computer players (Mozart, Brahms
-  and Chopin) plus the kitty. Each round shows the prize card, you bid a card from your hand,
-  all four bids are revealed, and the highest takes the prize card's points. The game ends
-  with the final standings.
-- **Config** — three settings, saved on this device and nowhere else:
+  and Chopin, until you rename them) plus the kitty. Each round shows the prize card, you bid a
+  card from your hand, all four bids are revealed, and the highest takes the prize card's
+  points. The game ends with the final standings.
+- **Config** — saved on this device and nowhere else:
   - **Theme** — Cream (the warm default), Dark, or Tiger (orange on black).
   - **Deck size** — 20 to 60 cards, default 40. The deck is dealt evenly to the four players
     and the kitty, so the size sets the length of the game: 40 cards means 8 cards each and 8
@@ -22,10 +22,14 @@ PWA:
     game.
   - **Display strategy** — off by default. Turn it on and each opponent is named with the
     strategy it's playing: "Mozart (Min)", "Chopin (Nearest)".
+  - **Computer players** — name each of your three opponents (4 to 10 characters) and choose
+    how it bids: one of the five strategies below, or **Auto**, which deals that seat a
+    strategy at random every game. Two Auto seats never get the same one, and Auto steers clear
+    of any strategy you picked by hand — though if you deliberately set two seats to Min, that
+    is what you get.
 - **About** — version, build time, and git commit of the running build.
 
-Every new game deals the three computer players **a different strategy each, at random**, so no
-two of them bid the same way and no two games are the same table:
+The five strategies, all of which start out on Auto:
 
 | Strategy | How it bids |
 |---|---|

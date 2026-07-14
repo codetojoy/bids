@@ -10,7 +10,14 @@ import {
 } from './deck.ts';
 import { makeRng, type Rng } from './rng.ts';
 import { prizeValue, resolveRound } from './scoring.ts';
-import { getStrategy, randomStrategies, type StrategyId } from './strategy.ts';
+import {
+	AUTO,
+	getStrategy,
+	isStrategyId,
+	randomStrategies,
+	type StrategyChoice,
+	type StrategyId
+} from './strategy.ts';
 
 /**
  * Immutable game state and the pure transitions over it (SPEC §9). `GameState` is plain
@@ -69,9 +76,10 @@ export interface GameState {
 }
 
 /**
- * The defaults: a 1..40 deck, you against Mozart, Brahms and Chopin. The strategies here
- * are only a deterministic baseline — /play runs the seats through `assignRandomStrategies`
- * so each game deals its opponents a distinct strategy.
+ * The defaults: a 1..40 deck, you against Mozart, Brahms and Chopin. The names are what an
+ * unconfigured seat is called, and the strategies are only a deterministic baseline — /play
+ * takes both from /config and runs the seats through `assignStrategies`, so an Auto seat is
+ * dealt a strategy per game.
  */
 export const DEFAULT_CONFIG: Omit<GameConfig, 'seed'> = {
 	deckSize: DEFAULT_DECK_SIZE,
@@ -83,21 +91,31 @@ export const DEFAULT_CONFIG: Omit<GameConfig, 'seed'> = {
 	]
 };
 
+/** A seat as it is *configured* (TODO-007): `null` for the human, a strategy, or Auto. */
+export interface SeatChoice {
+	name: string;
+	strategy: StrategyChoice | null;
+}
+
 /**
- * Deal the computer seats a distinct strategy each, at random (TODO-006) — the human seat
- * keeps its `null`. The strategies come from the same seeded `Rng` as everything else, so
- * a game is still reproducible in full from its seed: same opponents, same deal.
+ * Resolve the configured seats into the players of a game: a seat set to a named strategy
+ * plays it, an `AUTO` seat is dealt one at random, and the human seat keeps its `null`.
+ *
+ * The Auto seats get *distinct* strategies, drawn from the ones no seat was set to by hand,
+ * so a table never has two of the same by accident (TODO-006, TODO-007). The draw comes from
+ * the same seeded `Rng` as everything else, so a game is still reproducible in full from its
+ * seed: same opponents, same deal.
  */
-export function assignRandomStrategies(
-	players: GameConfig['players'],
-	rng: Rng
-): GameConfig['players'] {
-	const computerSeats = players.filter((p) => p.strategy !== null).length;
-	const strategies = randomStrategies(computerSeats, rng);
+export function assignStrategies(seats: readonly SeatChoice[], rng: Rng): GameConfig['players'] {
+	const chosen = seats.map((s) => s.strategy).filter(isStrategyId);
+	const autoSeats = seats.filter((s) => s.strategy === AUTO).length;
+	const dealt = randomStrategies(autoSeats, rng, chosen);
+
 	let next = 0;
-	return players.map((player) =>
-		player.strategy === null ? player : { ...player, strategy: strategies[next++] }
-	);
+	return seats.map((seat) => ({
+		name: seat.name,
+		strategy: seat.strategy === AUTO ? dealt[next++] : seat.strategy
+	}));
 }
 
 export function startGame(config: GameConfig, rng: Rng = makeRng(config.seed)): GameState {
