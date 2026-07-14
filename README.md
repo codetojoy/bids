@@ -13,7 +13,7 @@ PWA:
 - **Play** — a full game: the deck is dealt to you and three computer players (Mozart, Brahms
   and Chopin, until you rename them) plus the kitty. Each round shows the prize card, you bid a
   card from your hand, all four bids are revealed, and the highest takes the prize card's
-  points. The game ends with the final standings.
+  points. The game ends with the final standings — 🎉 if you took it, 🤝 if a computer did.
 - **Config** — saved on this device and nowhere else:
   - **Theme** — Cream (the warm default), Dark, or Tiger (orange on black).
   - **Deck size** — 20 to 60 cards, default 40. The deck is dealt evenly to the four players

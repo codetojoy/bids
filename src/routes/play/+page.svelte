@@ -16,6 +16,7 @@
 	import { gameWinners, standings } from '$lib/domain/scoring';
 	import { makeRng, randomSeed } from '$lib/domain/rng';
 	import { STRATEGY_LABELS } from '$lib/domain/strategy';
+	import { resultMessage } from '$lib/ui/result';
 	import { loadSettings } from '$lib/ui/settings';
 	import NumberCard from '$lib/ui/NumberCard.svelte';
 	import peepYou from '$lib/assets/avatars/peep-04.svg';
@@ -60,6 +61,7 @@
 	const hand = $derived(game ? [...game.hands[HUMAN_ID]].sort((a, b) => a - b) : []);
 	const table = $derived(game ? standings(game) : []);
 	const winners = $derived(game?.phase === 'complete' ? gameWinners(game) : []);
+	const result = $derived(winners.length ? resultMessage(winners) : null);
 	const totalRounds = $derived(game?.kitty.length ?? 0);
 
 	function bid(card: Card) {
@@ -159,14 +161,11 @@
 			</section>
 		{:else if game.phase === 'complete'}
 			<section class="result" aria-live="polite">
+				<!-- No score here: the standings below give every seat's. The emoji is decorative,
+				     so it is hidden from a screen reader rather than read out by name. -->
 				<h2>
-					{#if winners.length > 1}
-						A tie: {winners.map((w) => w.name).join(' and ')} — {winners[0].score} points
-					{:else if winners[0].playerId === HUMAN_ID}
-						You win with {winners[0].score} points
-					{:else}
-						{winners[0].name} wins with {winners[0].score} points
-					{/if}
+					<span class="emoji" aria-hidden="true">{result!.emoji}</span>
+					{result!.text}
 				</h2>
 				<ol class="final">
 					{#each table as row (row.playerId)}
@@ -393,6 +392,13 @@
 		letter-spacing: normal;
 		text-transform: none;
 		color: var(--accent);
+	}
+
+	/* The emoji keeps its own colours — it must not inherit the accent, and it reads better
+	   a little larger than the line it leads. */
+	.emoji {
+		font-size: 1.75rem;
+		line-height: 1;
 	}
 
 	.final {

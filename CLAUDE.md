@@ -97,7 +97,8 @@ Domain module map:
 - `game-state.ts` — `startGame` and the `playRound(state, humanCard)` transition; validates and
   throws on an impossible move (a card the human doesn't hold, playing past the end); plus
   `assignStrategies(seats, rng)`, which turns the configured seats into a table (see Auto above)
-- `scoring.ts` — `resolveRound` (highest bid wins), `standings`, `gameWinners`
+- `scoring.ts` — `resolveRound` (highest bid wins), `standings`, `gameWinners` (a *list*: scores
+  can tie even though bids cannot)
 
 Seat 0 is always the human (`HUMAN_ID`) and is the only seat with a `null` strategy.
 
@@ -174,8 +175,14 @@ properties over seeded games: **points are conserved** (the scores must sum to t
 value), **cards are conserved** (every dealt card is bid exactly once), and every game
 terminates in exactly `kitty.length` rounds with all hands empty. Add to those invariants
 rather than only testing new functions in isolation. `tests/ui/` covers the pure parts of the
-UI layer (the theme registry and the normalization of an untrusted stored blob); the
-`localStorage` plumbing itself is browser-only and is verified by driving the real page.
+UI layer (the theme registry, the normalization of an untrusted stored blob, the game-over
+headline); the `localStorage` plumbing itself is browser-only and is verified by driving the
+real page.
+
+**Copy that has an unreachable branch belongs in a pure function.** The game-over headline
+(`ui/result.ts`, TODO-008) is the example: scores *can* tie, but the UI has no seed control, so
+a tie cannot be produced by driving the app — the four lines are only testable because
+`resultMessage(winners)` is pure. Reach for the same move whenever a branch can't be driven.
 
 ## Constraints worth remembering
 
