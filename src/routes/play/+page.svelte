@@ -3,16 +3,19 @@
 	import { base } from '$app/paths';
 	import type { Card } from '$lib/domain/deck';
 	import {
+		assignRandomStrategies,
 		currentPrize,
 		DEFAULT_CONFIG,
 		HUMAN_ID,
 		playRound,
 		startGame,
 		type GameState,
+		type Player,
 		type RoundResult
 	} from '$lib/domain/game-state';
 	import { gameWinners, standings } from '$lib/domain/scoring';
-	import { randomSeed } from '$lib/domain/rng';
+	import { makeRng, randomSeed } from '$lib/domain/rng';
+	import { STRATEGY_LABELS } from '$lib/domain/strategy';
 	import { loadSettings } from '$lib/ui/settings';
 	import NumberCard from '$lib/ui/NumberCard.svelte';
 	import peepYou from '$lib/assets/avatars/peep-04.svg';
@@ -23,15 +26,26 @@
 	// Avatars are decorative (ASSETS.md): the seat name is the real identifier.
 	const avatars = [peepYou, peepMozart, peepBrahms, peepChopin];
 
-	// The deck size comes from /config, read at deal time — so changing it starts applying
-	// with the next new game, and a game in progress keeps the deck it was dealt from.
-	const newGame = () =>
-		startGame({ ...DEFAULT_CONFIG, deckSize: loadSettings().deckSize, seed: randomSeed() });
+	// The settings come from /config, read at deal time — so a change starts applying with the
+	// next new game, and a game in progress keeps the deck and the opponents it was dealt.
+	// Each game also deals its computer seats a distinct strategy at random (TODO-006), from
+	// the game's own seed, so the whole table is reproducible from it.
+	function newGame() {
+		const settings = loadSettings();
+		const seed = randomSeed();
+		showStrategy = settings.showStrategy;
+		return startGame({
+			deckSize: settings.deckSize,
+			players: assignRandomStrategies(DEFAULT_CONFIG.players, makeRng(seed)),
+			seed
+		});
+	}
 
 	// The deal is random, so it must happen in the browser, not at prerender time: a game
 	// dealt during the static build would be baked into the HTML and then contradicted by
 	// the one the client deals on hydration. null means "not dealt yet" (SSR + first frame).
 	let game = $state<GameState | null>(null);
+	let showStrategy = $state(false);
 	// The round just played, held on screen so the bids can be read before moving on.
 	// null means "waiting for your bid".
 	let revealed = $state<RoundResult | null>(null);
@@ -63,6 +77,12 @@
 
 	const bidOf = (result: RoundResult, playerId: number) =>
 		result.bids.find((b) => b.playerId === playerId)!.card;
+
+	// "Mozart (Min)" when the setting is on. The human seat has no strategy, so it stays "You".
+	const seatName = (player: Player) =>
+		showStrategy && player.strategy
+			? `${player.name} (${STRATEGY_LABELS[player.strategy]})`
+			: player.name;
 </script>
 
 <svelte:head>
@@ -93,7 +113,7 @@
 			{#each game.players as player (player.id)}
 				<li class="seat" class:won={revealed?.winnerId === player.id}>
 					<img class="avatar" src={avatars[player.id]} alt="" aria-hidden="true" />
-					<span class="name">{player.name}</span>
+					<span class="name">{seatName(player)}</span>
 					<span class="bid">
 						{#if revealed}
 							<NumberCard

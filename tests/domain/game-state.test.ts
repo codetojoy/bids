@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { validDeckSizes } from '../../src/lib/domain/deck.ts';
 import {
+	assignRandomStrategies,
 	currentPrize,
 	DEFAULT_CONFIG,
 	HUMAN_ID,
@@ -10,8 +11,16 @@ import {
 	type GameState
 } from '../../src/lib/domain/game-state.ts';
 import { gameWinners } from '../../src/lib/domain/scoring.ts';
+import { makeRng } from '../../src/lib/domain/rng.ts';
+import { STRATEGY_IDS, type StrategyId } from '../../src/lib/domain/strategy.ts';
 
 const config = (seed: number): GameConfig => ({ ...DEFAULT_CONFIG, seed });
+
+/** The default table, with every computer seat playing the same given strategy. */
+const configWith = (strategy: StrategyId, seed: number): GameConfig => ({
+	...config(seed),
+	players: DEFAULT_CONFIG.players.map((p) => (p.strategy === null ? p : { ...p, strategy }))
+});
 
 /** Play a game to the end, the human always bidding the first card in their hand. */
 function playOut(state: GameState): GameState {
@@ -131,6 +140,37 @@ describe('playRound', () => {
 	});
 });
 
+describe('assignRandomStrategies (TODO-006)', () => {
+	it('gives every computer seat a distinct strategy and leaves the human seat alone', () => {
+		const players = assignRandomStrategies(DEFAULT_CONFIG.players, makeRng(3));
+
+		expect(players.map((p) => p.name)).toEqual(DEFAULT_CONFIG.players.map((p) => p.name));
+		expect(players[HUMAN_ID].strategy).toBeNull();
+
+		const strategies = players.slice(1).map((p) => p.strategy);
+		expect(new Set(strategies).size).toBe(strategies.length);
+		for (const id of strategies) expect(STRATEGY_IDS).toContain(id!);
+	});
+
+	it('keeps the game reproducible from its seed: same seed, same opponents', () => {
+		expect(assignRandomStrategies(DEFAULT_CONFIG.players, makeRng(11))).toEqual(
+			assignRandomStrategies(DEFAULT_CONFIG.players, makeRng(11))
+		);
+	});
+
+	it('plays out from a randomly-strategied table, conserving points and cards', () => {
+		for (let seed = 0; seed < 25; seed++) {
+			const start = startGame({
+				...config(seed),
+				players: assignRandomStrategies(DEFAULT_CONFIG.players, makeRng(seed))
+			});
+			const done = playOut(start);
+			expect(done.scores.reduce((a, b) => a + b, 0)).toBe(start.kitty.reduce((a, b) => a + b, 0));
+			expect(done.hands.every((h) => h.length === 0)).toBe(true);
+		}
+	});
+});
+
 describe('a game at every playable deck size (TODO-005)', () => {
 	it.each(validDeckSizes(4))('deck of %i: deals, plays out, and conserves everything', (deckSize) => {
 		const perPile = deckSize / 5; // four players + the kitty
@@ -185,6 +225,25 @@ describe('a full game', () => {
 			expect(gameWinners(done).length).toBeGreaterThanOrEqual(1);
 		}
 	);
+
+	/* The invariants must hold whoever is bidding — a strategy is not allowed to make cards
+	   or points appear. Every seat plays the same strategy here, which is the harshest case:
+	   min against min bids the whole hand in ascending order. */
+	it.each(STRATEGY_IDS)('conserves points and cards with every seat playing %s', (strategy) => {
+		for (let seed = 0; seed < 20; seed++) {
+			const start = startGame(configWith(strategy, seed));
+			const done = playOut(start);
+
+			expect(done.history).toHaveLength(start.kitty.length);
+			expect(done.hands.every((h) => h.length === 0)).toBe(true);
+			expect(done.scores.reduce((a, b) => a + b, 0)).toBe(
+				start.kitty.reduce((a, b) => a + b, 0)
+			);
+
+			const bidCards = done.history.flatMap((r) => r.bids.map((b) => b.card)).sort((a, b) => a - b);
+			expect(bidCards).toEqual(start.hands.flat().sort((a, b) => a - b));
+		}
+	});
 
 	it('terminates for a hundred seeds, with the human bidding whatever they like', () => {
 		for (let seed = 0; seed < 100; seed++) {

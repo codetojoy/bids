@@ -10,7 +10,7 @@ import {
 } from './deck.ts';
 import { makeRng, type Rng } from './rng.ts';
 import { prizeValue, resolveRound } from './scoring.ts';
-import { getStrategy, type StrategyId } from './strategy.ts';
+import { getStrategy, randomStrategies, type StrategyId } from './strategy.ts';
 
 /**
  * Immutable game state and the pure transitions over it (SPEC §9). `GameState` is plain
@@ -68,7 +68,11 @@ export interface GameState {
 	phase: 'bidding' | 'complete';
 }
 
-/** The defaults: a 1..40 deck, you against Mozart, Brahms and Chopin. */
+/**
+ * The defaults: a 1..40 deck, you against Mozart, Brahms and Chopin. The strategies here
+ * are only a deterministic baseline — /play runs the seats through `assignRandomStrategies`
+ * so each game deals its opponents a distinct strategy.
+ */
 export const DEFAULT_CONFIG: Omit<GameConfig, 'seed'> = {
 	deckSize: DEFAULT_DECK_SIZE,
 	players: [
@@ -78,6 +82,23 @@ export const DEFAULT_CONFIG: Omit<GameConfig, 'seed'> = {
 		{ name: 'Chopin', strategy: 'nextCard' }
 	]
 };
+
+/**
+ * Deal the computer seats a distinct strategy each, at random (TODO-006) — the human seat
+ * keeps its `null`. The strategies come from the same seeded `Rng` as everything else, so
+ * a game is still reproducible in full from its seed: same opponents, same deal.
+ */
+export function assignRandomStrategies(
+	players: GameConfig['players'],
+	rng: Rng
+): GameConfig['players'] {
+	const computerSeats = players.filter((p) => p.strategy !== null).length;
+	const strategies = randomStrategies(computerSeats, rng);
+	let next = 0;
+	return players.map((player) =>
+		player.strategy === null ? player : { ...player, strategy: strategies[next++] }
+	);
+}
 
 export function startGame(config: GameConfig, rng: Rng = makeRng(config.seed)): GameState {
 	if (config.players.length < 2) {
@@ -132,7 +153,9 @@ export function playRound(state: GameState, humanCard: Card): GameState {
 	const bids: Bid[] = state.players.map((player) => {
 		if (player.strategy === null) return { playerId: player.id, card: humanCard };
 		const hand = state.hands[player.id];
-		const card = getStrategy(player.strategy)({ hand, prize });
+		// A strategy is given only what a player legitimately knows: its own hand, the prize,
+		// and the deck size (public — hybrid needs it to know what a "big" prize is).
+		const card = getStrategy(player.strategy)({ hand, prize, deckSize: state.config.deckSize });
 		if (!hand.includes(card)) {
 			throw new Error(`${player.name}'s strategy bid ${card}, which is not in their hand`);
 		}

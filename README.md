@@ -14,18 +14,30 @@ PWA:
   and Chopin) plus the kitty. Each round shows the prize card, you bid a card from your hand,
   all four bids are revealed, and the highest takes the prize card's points. The game ends
   with the final standings.
-- **Config** — two settings, saved on this device and nowhere else:
+- **Config** — three settings, saved on this device and nowhere else:
   - **Theme** — Cream (the warm default), Dark, or Tiger (orange on black).
   - **Deck size** — 20 to 60 cards, default 40. The deck is dealt evenly to the four players
     and the kitty, so the size sets the length of the game: 40 cards means 8 cards each and 8
     rounds; 20 means a quick 4-round game; 60 a long 12-round one. It applies to your next new
     game.
+  - **Display strategy** — off by default. Turn it on and each opponent is named with the
+    strategy it's playing: "Mozart (Min)", "Chopin (Nearest)".
 - **About** — version, build time, and git commit of the running build.
 
-The computer players all use the `nextCard` strategy for now — bid the next card in the hand
-as dealt — which is a deliberately simple baseline. The min / max / nearest-to-prize and
-hybrid strategies of SPEC §4 plug into `src/lib/domain/strategy.ts` without touching anything
-else.
+Every new game deals the three computer players **a different strategy each, at random**, so no
+two of them bid the same way and no two games are the same table:
+
+| Strategy | How it bids |
+|---|---|
+| **Min** | The lowest card in hand — concede this prize, keep the ammunition. |
+| **Max** | The highest card in hand — take this prize, whatever it costs later. |
+| **Nearest** | The card closest in face value to the prize; ties go to the lower card. |
+| **Hybrid** | Nearest when the prize is in the top half of the deck, Min otherwise. |
+| **Next** | The next card in the hand as dealt — the original, deliberately trivial baseline. |
+
+A strategy is a pure function of *its own hand, the prize, and the deck size* — it is never
+shown another player's hand or bid, so it cannot cheat, and bids are genuinely simultaneous. A
+new one is a single entry in `src/lib/domain/strategy.ts` and nothing else.
 
 ## Running the app locally
 
@@ -58,9 +70,9 @@ npm run check        # typecheck (svelte-check)
 
 The suite tests the domain layer (SPEC §9: the UI is replaceable, the rules engine is not).
 Beyond per-module tests it checks whole-game properties over seeded games, at every playable
-deck size: points are conserved (the final scores sum to the kitty's face value), cards are
-conserved (every dealt card is bid exactly once), and every game terminates in exactly
-`deckSize / 5` rounds with all hands empty.
+deck size and with every strategy at the table: points are conserved (the final scores sum to
+the kitty's face value), cards are conserved (every dealt card is bid exactly once), and every
+game terminates in exactly `deckSize / 5` rounds with all hands empty.
 
 One rules note worth knowing: because the deck is suitless and every card unique, two players
 can never bid the same number — so there is no tie-break rule, and the domain throws if it

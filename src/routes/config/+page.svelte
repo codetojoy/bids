@@ -44,6 +44,10 @@
 		const deckSize = parseDeckSize(Number((event.currentTarget as HTMLSelectElement).value));
 		commit({ ...settings, deckSize });
 	}
+
+	function chooseShowStrategy(event: Event) {
+		commit({ ...settings, showStrategy: (event.currentTarget as HTMLInputElement).checked });
+	}
 </script>
 
 <svelte:head>
@@ -78,6 +82,22 @@
 			<p class="hint">
 				The deck is dealt out evenly to the {playerCount} players and the kitty, so a bigger deck
 				means a longer game. Takes effect on your next new game.
+			</p>
+		</div>
+
+		<div class="setting">
+			<span class="label">Display strategy</span>
+			<label class="check">
+				<input
+					type="checkbox"
+					checked={settings.showStrategy}
+					onchange={chooseShowStrategy}
+				/>
+				<span>Show each computer player's strategy while you play</span>
+			</label>
+			<p class="hint">
+				Names it beside the player — “Mozart (Min)”, “Chopin (Nearest)” — so you can see how each
+				opponent is bidding. Takes effect on your next new game.
 			</p>
 		</div>
 
@@ -139,12 +159,40 @@
 		gap: 0.5rem;
 	}
 
-	label {
+	label:not(.check),
+	.label {
 		font-size: 0.95rem;
 		font-weight: 700;
 		letter-spacing: 0.12em;
 		text-transform: uppercase;
 		color: var(--accent-deep);
+	}
+
+	/* The whole row is the tap target, not just the box — comfortably past 48px. */
+	.check {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		min-height: 48px;
+		padding: 0 0.75rem;
+		border: 1px solid var(--rule);
+		border-radius: 8px;
+		background: var(--bg);
+		color: var(--ink);
+		font-size: 1.05rem;
+		cursor: pointer;
+	}
+
+	.check input {
+		width: 1.5rem;
+		height: 1.5rem;
+		accent-color: var(--accent);
+		cursor: pointer;
+	}
+
+	.check:focus-within {
+		outline: 4px solid var(--focus);
+		outline-offset: 2px;
 	}
 
 	/* ≥48px tap target, and large enough text to read at OS scaling. */

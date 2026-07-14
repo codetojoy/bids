@@ -12,12 +12,16 @@ is `doc/SPEC.md` — read both before making design decisions. Work items arrive
 `doc/TODO-*.md` files.
 
 **Current state: one playable game.** `/play` deals the deck to you and three computer players
-(Mozart, Brahms, Chopin) plus the kitty, and plays through to a winner. Every computer seat uses
-the `nextCard` strategy (bid the next card in the hand as dealt), a deliberately trivial
-baseline. Player names and strategy assignment are still hard-coded in `DEFAULT_CONFIG`.
+(Mozart, Brahms, Chopin) plus the kitty, and plays through to a winner. Each new game deals the
+three computer seats a **distinct strategy at random** (`assignRandomStrategies`, TODO-006) out
+of the five in `strategy.ts` — so the seats' names are hard-coded in `DEFAULT_CONFIG` but the
+strategies beside them are not, and its `nextCard` entries are only a deterministic baseline for
+tests. The strategies come from the game's own seed, so a seed still reproduces the whole table:
+same opponents, same deal.
 
-`/config` holds the two settings that persist: **Theme** (Cream, Dark, Tiger; TODO-003,
-TODO-004) and **Deck size** (TODO-005).
+`/config` holds the three settings that persist: **Theme** (Cream, Dark, Tiger; TODO-003,
+TODO-004), **Deck size** (TODO-005), and **Display strategy** (TODO-006 — a boolean; when on,
+`/play` names the seat "Mozart (Min)").
 
 **Deck size and the shape of a game.** The deck is dealt out *evenly* to the players **and the
 kitty** — `playerCount + 1` piles — so the deck size determines everything else: each hand, the
@@ -76,26 +80,39 @@ Domain module map:
   rather than dropping cards if it doesn't divide evenly; plus the deck-size rules
   (`isValidDeckSize`, `validDeckSizes`, which the Config dropdown renders from)
 - `strategy.ts` — the strategy pattern (SPEC §4). A `Strategy` is a pure
-  `({ hand, prize }) => Card`; bids are simultaneous, so it never sees another player's bid.
-  Only `nextCard` exists so far — min / max / nearest-to-prize / hybrid are added as new entries
-  in `STRATEGIES` with no changes anywhere else
+  `({ hand, prize, deckSize }) => Card`. Five exist (TODO-006): `nextCard` (the original
+  baseline), `min`, `max`, `nearest` (closest in face value to the prize — equal distances break
+  toward the *lower* card, and the distance is never zero because the prize is in nobody's hand),
+  and `hybrid` (`nearest` when `prize > deckSize / 2`, else `min` — note the test is *strict*, so
+  exactly half the deck is a small prize). A sixth is a new entry in `STRATEGIES` plus a label,
+  and nothing else. `randomStrategies(count, rng)` picks distinct ones for the seats
 - `game-state.ts` — `startGame` and the `playRound(state, humanCard)` transition; validates and
-  throws on an impossible move (a card the human doesn't hold, playing past the end)
+  throws on an impossible move (a card the human doesn't hold, playing past the end); plus
+  `assignRandomStrategies(players, rng)`, which `/play` uses to deal each new game's opponents
 - `scoring.ts` — `resolveRound` (highest bid wins), `standings`, `gameWinners`
 
 Seat 0 is always the human (`HUMAN_ID`) and is the only seat with a `null` strategy.
+
+**`BiddingContext` is a security boundary, not a convenience.** A strategy is handed only what a
+player legitimately knows — its own hand, the prize, and the deck size (public: it's a setting).
+It is never handed `GameState`, so it *cannot* see another seat's hand or bid however it is
+written, and bids stay genuinely simultaneous. Widening it is how cheating becomes possible; add
+a field only if a strategy could not otherwise be written, and see
+`doc/BRAINSTORM-custom-strategies.md` §4 first. A strategy also never reaches for `Math.random` —
+if one needs randomness, it takes an `Rng` derived from the game's seed, or the games stop being
+reproducible and the whole-game property tests lose their footing.
 
 ### Themes and settings (`src/lib/ui/`)
 
 `theme.ts` is the registry (`THEMES`, `DEFAULT_THEME_ID`, `parseThemeId`) and is pure, so it is
 unit-tested directly. `settings.ts` is the only module that touches `localStorage` (key
 `bids.settings.v1`) and the live DOM; it is guarded by `browser` because every route is
-prerendered. Every field of the stored blob is coerced on read (`parseThemeId`,
-`parseDeckSize`), field by field, so a corrupt, stale, or older-build value falls back to its
+prerendered. Every field of the stored blob is coerced on read (`parseThemeId`, `parseDeckSize`,
+`parseShowStrategy`), field by field, so a corrupt, stale, or older-build value falls back to its
 default instead of throwing or blanking the app — a blob written before a setting existed still
 loads, and a bad theme doesn't take a good deck size down with it. Settings are read at the
-moment they're used (`/play` reads the deck size when it deals), so a change applies to the next
-game, never to one in progress.
+moment they're used (`/play` reads the deck size and the strategy toggle when it deals), so a
+change applies to the next game, never to one in progress.
 
 **Adding a theme is three edits, and every one of them is required:**
 

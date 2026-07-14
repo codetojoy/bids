@@ -12,7 +12,12 @@ import {
 	parseThemeId,
 	themeLabel
 } from '../../src/lib/ui/theme.ts';
-import { defaultSettings, normalizeSettings, parseDeckSize } from '../../src/lib/ui/settings.ts';
+import {
+	defaultSettings,
+	normalizeSettings,
+	parseDeckSize,
+	parseShowStrategy
+} from '../../src/lib/ui/settings.ts';
 
 describe('the theme registry', () => {
 	it('offers Cream, Dark and Tiger', () => {
@@ -74,15 +79,31 @@ describe('parseDeckSize', () => {
 	});
 });
 
+describe('parseShowStrategy', () => {
+	it('keeps a stored boolean', () => {
+		expect(parseShowStrategy(true)).toBe(true);
+		expect(parseShowStrategy(false)).toBe(false);
+	});
+
+	/* Strictly a boolean: a truthy 'false' string or a stray 1 is corruption, not a yes. */
+	it('falls back to off for anything that is not one', () => {
+		for (const bad of ['true', 'false', 1, 0, null, undefined, {}]) {
+			expect(parseShowStrategy(bad)).toBe(false);
+		}
+	});
+});
+
 describe('normalizeSettings', () => {
 	it('reads a well-formed stored blob', () => {
-		expect(normalizeSettings({ themeId: 'cream', deckSize: 40 })).toEqual({
+		expect(normalizeSettings({ themeId: 'cream', deckSize: 40, showStrategy: false })).toEqual({
 			themeId: 'cream',
-			deckSize: 40
+			deckSize: 40,
+			showStrategy: false
 		});
-		expect(normalizeSettings({ themeId: 'tiger', deckSize: 25 })).toEqual({
+		expect(normalizeSettings({ themeId: 'tiger', deckSize: 25, showStrategy: true })).toEqual({
 			themeId: 'tiger',
-			deckSize: 25
+			deckSize: 25,
+			showStrategy: true
 		});
 	});
 
@@ -92,23 +113,33 @@ describe('normalizeSettings', () => {
 		}
 	});
 
-	/* A blob written before deck size existed (TODO-003 → TODO-005) must still load: the
-	   missing field takes the default rather than blanking the theme beside it. */
+	/* A blob written before deck size or the strategy toggle existed (TODO-003 → TODO-005 →
+	   TODO-006) must still load: each missing field takes its default rather than blanking
+	   the settings beside it. */
 	it('fills in a field an older build never wrote', () => {
-		expect(normalizeSettings({ themeId: 'tiger' })).toEqual({ themeId: 'tiger', deckSize: 40 });
+		expect(normalizeSettings({ themeId: 'tiger' })).toEqual({
+			themeId: 'tiger',
+			deckSize: 40,
+			showStrategy: false
+		});
+		expect(normalizeSettings({ themeId: 'tiger', deckSize: 25 })).toEqual({
+			themeId: 'tiger',
+			deckSize: 25,
+			showStrategy: false
+		});
 	});
 
 	it('salvages the good half of a partly-corrupt blob', () => {
-		expect(normalizeSettings({ themeId: 'midnight', deckSize: 25 })).toEqual({
+		expect(normalizeSettings({ themeId: 'midnight', deckSize: 25, showStrategy: true })).toEqual({
 			themeId: 'cream',
-			deckSize: 25
+			deckSize: 25,
+			showStrategy: true
 		});
 	});
 
 	it('ignores unknown keys rather than carrying them through', () => {
-		expect(normalizeSettings({ themeId: 'cream', deckSize: 40, volume: 11 })).toEqual({
-			themeId: 'cream',
-			deckSize: 40
-		});
+		expect(normalizeSettings({ themeId: 'cream', deckSize: 40, volume: 11 })).toEqual(
+			defaultSettings()
+		);
 	});
 });

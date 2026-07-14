@@ -18,13 +18,21 @@ const STORAGE_KEY = 'bids.settings.v1';
 /** The seat count the settings are validated against — fixed until players are configurable. */
 const PLAYER_COUNT = DEFAULT_CONFIG.players.length;
 
+export const DEFAULT_SHOW_STRATEGY = false;
+
 export interface Settings {
 	themeId: ThemeId;
 	deckSize: number;
+	/** Show each computer player's strategy beside its name during play (TODO-006). */
+	showStrategy: boolean;
 }
 
 export function defaultSettings(): Settings {
-	return { themeId: DEFAULT_THEME_ID, deckSize: DEFAULT_DECK_SIZE };
+	return {
+		themeId: DEFAULT_THEME_ID,
+		deckSize: DEFAULT_DECK_SIZE,
+		showStrategy: DEFAULT_SHOW_STRATEGY
+	};
 }
 
 /** Coerce a stored deck size to a playable one, falling back to the default (TODO-005). */
@@ -32,10 +40,23 @@ export function parseDeckSize(value: unknown): number {
 	return isValidDeckSize(value, PLAYER_COUNT) ? value : DEFAULT_DECK_SIZE;
 }
 
+/**
+ * Coerce a stored flag to a boolean (TODO-006). Strictly a boolean: a blob written before
+ * this setting existed has no such field, and anything else in it is not to be trusted into
+ * a truthiness test.
+ */
+export function parseShowStrategy(value: unknown): boolean {
+	return typeof value === 'boolean' ? value : DEFAULT_SHOW_STRATEGY;
+}
+
 /** Normalize an arbitrary parsed blob into usable settings. Pure — exported for testing. */
 export function normalizeSettings(raw: unknown): Settings {
 	const obj = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
-	return { themeId: parseThemeId(obj.themeId), deckSize: parseDeckSize(obj.deckSize) };
+	return {
+		themeId: parseThemeId(obj.themeId),
+		deckSize: parseDeckSize(obj.deckSize),
+		showStrategy: parseShowStrategy(obj.showStrategy)
+	};
 }
 
 export function loadSettings(): Settings {
